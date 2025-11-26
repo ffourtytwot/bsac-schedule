@@ -1,0 +1,271 @@
+/* == ПЕРЕМЕННЫЕ (Светлая тема по умолчанию) == */
+:root {
+    --bg-body: #f4f4f9;
+    --text-main: #333;
+    --text-secondary: #555;
+    
+    --header-bg: #2c3e50;
+    --header-text: #ffffff;
+    
+    --card-bg: #ffffff;
+    --card-shadow: rgba(0,0,0,0.05);
+    
+    --day-header-bg: #3498db;
+    --day-header-text: #ffffff;
+    
+    --table-border: #ddd;
+    --th-bg: #ecf0f1;
+    --th-text: #2c3e50;
+    
+    --accent-loc: #e67e22;
+    --week-odd-bg: #dff9fb;
+    --week-odd-text: #130f40;
+    --week-odd-border: #c7ecee;
+    
+    --week-even-bg: #fce4ec;
+    --week-even-text: #8854d0;
+    --week-even-border: #f8a5c2;
+}
+
+/* == ТЕМНАЯ ТЕМА == */
+body.dark-theme {
+    --bg-body: #121212;
+    --text-main: #e0e0e0;
+    --text-secondary: #aaaaaa;
+    
+    --header-bg: #1a1a1a;
+    --header-text: #ffffff;
+    
+    --card-bg: #1e1e1e;
+    --card-shadow: rgba(0,0,0,0.5);
+    
+    --day-header-bg: #2980b9;
+    
+    --table-border: #333;
+    --th-bg: #2c2c2c;
+    --th-text: #ecf0f1;
+    
+    --accent-loc: #f39c12;
+    --week-odd-bg: #1e3a40; /* Темный бирюзовый */
+    --week-odd-text: #a0e7e5;
+    --week-odd-border: #2c5c63;
+    
+    --week-even-bg: #3f2030; /* Темный розовый */
+    --week-even-text: #f8a5c2;
+    --week-even-border: #5c2b3e;
+}
+
+/* == ОСНОВНЫЕ СТИЛИ == */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+header {
+    background-color: var(--header-bg);
+    color: var(--header-text);
+    padding: 10px 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; /* Для мобильных */
+}
+
+/* Логотип и заголовок */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logo {
+    height: 50px; /* Размер логотипа */
+    width: auto;
+    border-radius: 4px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+/* Правая часть хедера */
+.controls-area {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.settings-btns {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    cursor: pointer;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.group-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.group-selector label {
+    font-size: 0.8rem;
+    margin-bottom: 2px;
+    color: #ccc;
+}
+
+select {
+    padding: 6px;
+    font-size: 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    background: #fff;
+    color: #333;
+}
+
+/* Контейнер и карточки */
+main {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.schedule-day {
+    background: var(--card-bg);
+    margin-bottom: 30px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px var(--card-shadow);
+    transition: background 0.3s;
+}
+
+.day-title {
+    background-color: var(--day-header-bg);
+    color: var(--day-header-text);
+    padding: 10px 15px;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--table-border);
+    color: var(--text-main);
+}
+
+th {
+    background-color: var(--th-bg);
+    color: var(--th-text);
+    width: 15%;
+}
+
+/* Детали пар */
+.subject {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.details {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.location {
+    font-style: italic;
+    color: var(--accent-loc);
+}
+
+/* Недели */
+.week-split {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--table-border);
+}
+.week-split:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.week-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.week-odd { 
+    background-color: var(--week-odd-bg); 
+    color: var(--week-odd-text); 
+    border: 1px solid var(--week-odd-border); 
+}
+
+.week-even { 
+    background-color: var(--week-even-bg); 
+    color: var(--week-even-text); 
+    border: 1px solid var(--week-even-border); 
+}
+
+.placeholder {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    margin-top: 50px;
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 600px) {
+    header {
+        flex-direction: column;
+        text-align: center;
+    }
+    .header-left {
+        margin-bottom: 15px;
+        flex-direction: column;
+    }
+    .controls-area {
+        flex-direction: column;
+        width: 100%;
+    }
+    .group-selector {
+        align-items: center;
+        width: 100%;
+    }
+    .group-selector select {
+        width: 100%;
+    }
+}
