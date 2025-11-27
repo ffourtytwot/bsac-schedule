@@ -1,0 +1,485 @@
+/* == ПЕРЕМЕННЫЕ (Светлая тема по умолчанию) == */
+:root {
+    --bg-body: #f4f4f9;
+    --text-main: #333;
+    --text-secondary: #555;
+    
+    --header-bg: #2c3e50;
+    --header-text: #ffffff;
+    
+    --card-bg: #ffffff;
+    --card-shadow: rgba(0,0,0,0.05);
+    
+    --day-header-bg: #3498db;
+    --day-header-text: #ffffff;
+    
+    --table-border: #ddd;
+    --th-bg: #ecf0f1;
+    --th-text: #2c3e50;
+    
+    --accent-loc: #e67e22;
+    --week-odd-bg: #dff9fb;
+    --week-odd-text: #130f40;
+    --week-odd-border: #c7ecee;
+    
+    --week-even-bg: #fce4ec;
+    --week-even-text: #8854d0;
+    --week-even-border: #f8a5c2;
+}
+
+/* == ТЕМНАЯ ТЕМА == */
+body.dark-theme {
+    --bg-body: #121212;
+    --text-main: #e0e0e0;
+    --text-secondary: #aaaaaa;
+    
+    --header-bg: #1a1a1a;
+    --header-text: #ffffff;
+    
+    --card-bg: #1e1e1e;
+    --card-shadow: rgba(0,0,0,0.5);
+    
+    --day-header-bg: #2980b9;
+    
+    --table-border: #333;
+    --th-bg: #2c2c2c;
+    --th-text: #ecf0f1;
+    
+    --accent-loc: #f39c12;
+    --week-odd-bg: #1e3a40;
+    --week-odd-text: #a0e7e5;
+    --week-odd-border: #2c5c63;
+    
+    --week-even-bg: #3f2030;
+    --week-even-text: #f8a5c2;
+    --week-even-border: #5c2b3e;
+}
+
+/* == ОСНОВНЫЕ СТИЛИ == */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+header {
+    background-color: var(--header-bg);
+    color: var(--header-text);
+    padding: 10px 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logo {
+    height: 50px;
+    width: auto;
+    border-radius: 4px;
+    cursor: pointer; /* Указываем, что можно кликать */
+    transition: transform 0.1s;
+}
+.logo:active {
+    transform: scale(0.95);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.controls-area {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.settings-btns {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    cursor: pointer;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.group-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.group-selector label {
+    font-size: 0.8rem;
+    margin-bottom: 2px;
+    color: #ccc;
+}
+
+select {
+    padding: 6px;
+    font-size: 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    background: #fff;
+    color: #333;
+}
+
+main {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.schedule-day {
+    background: var(--card-bg);
+    margin-bottom: 30px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px var(--card-shadow);
+    transition: background 0.3s;
+}
+
+.day-title {
+    background-color: var(--day-header-bg);
+    color: var(--day-header-text);
+    padding: 10px 15px;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--table-border);
+    color: var(--text-main);
+}
+
+th {
+    background-color: var(--th-bg);
+    color: var(--th-text);
+    width: 15%;
+}
+
+.subject {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.details {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.location {
+    font-style: italic;
+    color: var(--accent-loc);
+}
+
+.week-split {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--table-border);
+}
+.week-split:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.week-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.week-odd { 
+    background-color: var(--week-odd-bg); 
+    color: var(--week-odd-text); 
+    border: 1px solid var(--week-odd-border); 
+}
+
+.week-even { 
+    background-color: var(--week-even-bg); 
+    color: var(--week-even-text); 
+    border: 1px solid var(--week-even-border); 
+}
+
+.placeholder {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    margin-top: 50px;
+}
+
+/* == МОДАЛЬНОЕ ОКНО АДМИНИСТРАТОРА == */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.modal.hidden {
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    padding: 30px;
+    border-radius: 8px;
+    width: 300px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative;
+    text-align: center;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.close-btn:hover {
+    color: var(--accent-loc);
+}
+
+.modal h2 {
+    margin-top: 0;
+}
+
+.modal input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    box-sizing: border-box;
+    border: 1px solid var(--table-border);
+    border-radius: 4px;
+    background: var(--bg-body);
+    color: var(--text-main);
+}
+
+.login-btn {
+    width: 100%;
+    background-color: var(--day-header-bg);
+    border: none;
+    padding: 10px;
+    margin-top: 10px;
+    font-weight: bold;
+    color: white;
+}
+
+.login-btn:hover {
+    background-color: var(--accent-loc);
+}
+
+#loginMessage {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    min-height: 20px;
+}
+
+@media (max-width: 600px) {
+    header {
+        flex-direction: column;
+        text-align: center;
+    }
+    .header-left {
+        margin-bottom: 15px;
+        flex-direction: column;
+    }
+    .controls-area {
+        flex-direction: column;
+        width: 100%;
+    }
+    .group-selector {
+        align-items: center;
+        width: 100%;
+    }
+    .group-selector select {
+        width: 100%;
+    }
+}
+
+/* == АДМІНСКІЯ ЭЛЕМЕНТЫ == */
+
+#adminBadge {
+    background-color: #f1c40f;
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    cursor: default;
+}
+#adminBadge.hidden { display: none; }
+
+.hidden { display: none !important; }
+
+/* Кнопкі кіравання ўнутры пары (Edit / Delete / Save) */
+.admin-controls {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dotted var(--table-border);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.btn-edit, .btn-delete, .btn-save, .btn-cancel {
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: white;
+}
+
+.btn-edit { background-color: #3498db; }
+.btn-edit:hover { background-color: #2980b9; }
+
+.btn-delete { background-color: #e74c3c; }
+.btn-delete:hover { background-color: #c0392b; }
+
+.btn-save { background-color: #2ecc71; }
+.btn-save:hover { background-color: #27ae60; }
+
+.btn-cancel { background-color: #95a5a6; }
+.btn-cancel:hover { background-color: #7f8c8d; }
+
+/* Палі ўводу пры рэдагаванні */
+.edit-input {
+    width: 100%;
+    padding: 4px;
+    margin-bottom: 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.edit-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+    display: block;
+}
+
+/* == СТЫЛІ ДЛЯ МОДАЛЬНЫХ ВОКНАЎ (Як і раней) == */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+.modal.hidden {
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+}
+.modal-content {
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    padding: 30px;
+    border-radius: 8px;
+    width: 300px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative;
+    text-align: center;
+}
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+.modal input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    box-sizing: border-box;
+    border: 1px solid var(--table-border);
+    border-radius: 4px;
+    background: var(--bg-body);
+    color: var(--text-main);
+}
+.login-btn {
+    width: 100%;
+    background-color: var(--day-header-bg);
+    border: none;
+    padding: 10px;
+    margin-top: 10px;
+    font-weight: bold;
+    color: white;
+}
+
+/* Адаптив */
+@media (max-width: 600px) {
+    header { flex-direction: column; text-align: center; }
+    .header-left { margin-bottom: 15px; flex-direction: column; }
+    .controls-area { flex-direction: column; width: 100%; }
+    .group-selector { align-items: center; width: 100%; }
+    .group-selector select { width: 100%; }
+}
