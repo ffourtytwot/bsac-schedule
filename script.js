@@ -1,300 +1,157 @@
-// == НАСТРОЙКИ UI И ПЕРЕВОДЫ ==
+// == НАЛАДЫ РЭПАЗІТОРЫЯ ==
+const REPO_OWNER = "ffourtytwot";       // Напрыклад: "user123"
+const REPO_NAME = "bsac-schedule";     // Напрыклад: "bsac-schedule"
+const FILE_PATH = "schedule.json"; // Імя файла
+
+// == БЯСПЕКА ==
+const SALT = "bsac_super_salt_2025"; 
+// Сюды трэба ўставіць хэш вашага токена.
+// Як яго атрымаць: адкрыйце кансоль браўзера і ўвядзіце: await generateHash("ваш_токен_ghp...")
+// Скапіруйце вынік і ўстаўце ніжэй.
+const TARGET_HASH = "b1c7cec9eb702134065040072db3811ff6f7c3709ce49c853d01c5ef5187ff3a"; 
+
+// == UI НАЛАДЫ ==
 const translations = {
     ru: {
         title: "Расписание БГАС 1 Курс",
         selectLabel: "Выберите группу:",
         selectDefault: "-- Группа --",
-        placeholder: "Пожалуйста, выберите группу, чтобы увидеть расписание.",
+        placeholder: "Пожалуйста, выберите группу. (Загрузка...)",
         themeBtnLight: "☀️ Светлая",
         themeBtnDark: "🌙 Тёмная",
-        langBtn: "BE", // Кнопка переключает НА белорусский
-        days: {
-            "Понедельник": "Понедельник",
-            "Вторник": "Вторник",
-            "Среда": "Среда",
-            "Четверг": "Четверг",
-            "Пятница": "Пятница",
-            "Суббота": "Суббота"
-        }
+        langBtn: "RU",
+        btnEdit: "✎",
+        btnDelete: "✖",
+        btnSave: "☁️ Сохранить на GitHub",
+        btnCancel: "🚫",
+        days: { "Понедельник": "Понедельник", "Вторник": "Вторник", "Среда": "Среда", "Четверг": "Четверг", "Пятница": "Пятница", "Суббота": "Суббота" }
     },
     be: {
         title: "Расклад БДАС 1 Курс",
         selectLabel: "Абярыце групу:",
         selectDefault: "-- Група --",
-        placeholder: "Калі ласка, абярыце групу, каб пабачыць расклад.",
+        placeholder: "Калі ласка, абярыце групу. (Загрузка...)",
         themeBtnLight: "☀️ Светлая",
         themeBtnDark: "🌙 Цёмная",
-        langBtn: "RU", // Кнопка переключает НА русский
-        days: {
-            "Понедельник": "Панядзелак",
-            "Вторник": "Аўторак",
-            "Среда": "Серада",
-            "Четверг": "Чацвер",
-            "Пятница": "Пятніца",
-            "Суббота": "Субота"
-        }
+        langBtn: "BY",
+        btnEdit: "✎",
+        btnDelete: "✖",
+        btnSave: "☁️ Захаваць на GitHub",
+        btnCancel: "🚫",
+        days: { "Понедельник": "Панядзелак", "Вторник": "Аўторак", "Среда": "Серада", "Четверг": "Чацвер", "Пятница": "Пятніца", "Суббота": "Субота" }
     }
 };
 
 let currentLang = 'ru';
 let currentTheme = 'light';
+let isAdmin = false;
+let scheduleData = {};
+let githubToken = ""; 
 
-// == ДАННЫЕ (Ваши полные данные из прошлого шага) ==
-const scheduleData = {
-    "ИП591": {
-        "Понедельник": [
-            { time: "09:55-11:35", subject: "Иностранный язык (ПЗ)", teacher: "Игнатьева Е.М. / Старовойтова А.Г.", room: "214 / 312" },
-            { time: "12:15-13:55", subject: "Дискретная математика и мат. логистика (ЛК)", teacher: "Шкробот И.О.", room: "244" },
-            { time: "14:10-15:50", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" },
-            { time: "16:20-18:00", subject: "Дискретная математика и мат. логистика (ПЗ)", teacher: "Шкробот И.О.", room: "218" }
-        ],
-        "Вторник": [
-            { time: "08:00-09:40", subject: "История белорусской государственности (ПЗ) [2,4 нед]", teacher: "Спартак А.А.", room: "218", weeks: "2,4" },
-            { time: "09:55-11:35", subject: "Английский язык (тех. перевод) (ПЗ)", teacher: "Старовойтова А.Г.", room: "104 / 106" },
-            { time: "12:15-13:55", subject: "Основы алгоритмизации и программирования (ЛК)", teacher: "Горбадей О.Ю.", room: "414" },
-            { time: "14:10-15:50", subject: "Основы и методологии программирования (ЛК)", teacher: "Горбадей О.Ю.", room: "212 / 324" }
-        ],
-        "Среда": [
-            { time: "08:00-09:40", subject: "Математический анализ (ПЗ)", teacher: "Василевский Г.В.", room: "430" },
-            { time: "09:55-11:35", subject: "Иностранный язык (ПЗ)", teacher: "Игнатьева Е.М.", room: "214 / 312" },
-            { time: "12:15-13:55", subject: "Аналитическая геометрия (ЛК)", teacher: "Василевский Г.В.", room: "412" }
-        ],
-        "Четверг": [
-            { time: "09:55-11:35", subject: "Аналитическая геометрия (ПЗ)", teacher: "Василевский Г.В.", room: "410" },
-            { time: "12:15-13:55", subject: "Математический анализ (ЛК)", teacher: "Овсеец М.И.", room: "418" },
-            { time: "14:10-15:50", subject: "Математический анализ (ПЗ)", teacher: "Овсеец М.И.", room: "202" },
-            { time: "16:20-18:00", subject: "Основы и методологии программирования (ПЗ) [4 подгруппа]", teacher: "Бондаренко В.Ф.", room: "202" }
-        ],
-        "Пятница": [
-            { time: "08:00-09:40", multi: true, content: [
-                { weeks: "1,3", subject: "ОиМП (ЛР) [1,3 подгруппы]", teacher: "", room: "212" },
-                { weeks: "2,4", subject: "Основы и методологии прогр. (ЛК)", teacher: "Бондаренко В.Ф.", room: "202" }
-            ]},
-            { time: "09:55-11:35", multi: true, content: [
-                { weeks: "1,3", subject: "ОиМП (ЛР) [1,3 подгруппы]", teacher: "", room: "212" },
-                { weeks: "2,4", subject: "Основы и методологии прогр. (ЛК)", teacher: "Бондаренко В.Ф.", room: "202" }
-            ]},
-            { time: "12:15-13:55", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" },
-            { time: "14:10-15:50", subject: "История белорусской государственности (ЛК)", teacher: "Спартак А.А.", room: "222" }
-        ],
-        "Суббота": [
-            { time: "08:00-09:40", subject: "Алгебра и теория чисел (ЛК)", teacher: "Шкробот И.О.", room: "406" },
-            { time: "09:55-11:35", subject: "Алгебра и теория чисел (ПЗ)", teacher: "Шкробот И.О.", room: "406" },
-            { time: "12:15-13:55", subject: "Математический анализ (ЛК)", teacher: "Овсеец М.И.", room: "414" },
-            { time: "14:10-15:50", subject: "Математический анализ (ПЗ)", teacher: "Овсеец М.И.", room: "104" }
-        ]
-    },
-    "СИ591": {
-        "Понедельник": [
-            { time: "08:00-09:40", subject: "Линейная алгебра и аналитическая геометрия (ПЗ)", teacher: "Рябенкова Л.А.", room: "430" },
-            { time: "09:55-11:35", subject: "Линейная алгебра и аналитическая геометрия (ЛК)", teacher: "Рябенкова Л.А.", room: "412" },
-            { time: "12:15-13:55", subject: "Иностранный язык (ПЗ)", teacher: "Игнатьева Е.М.", room: "214/312" },
-            { time: "14:10-15:50", multi: true, content: [
-                { weeks: "1,3", subject: "Математический анализ (ПЗ)", teacher: "Василевский Г.В.", room: "428" },
-                { weeks: "2,4", subject: "История белорусской государственности (ПЗ)", teacher: "Спартак А.А.", room: "428" }
-            ]}
-        ],
-        "Вторник": [
-            { time: "08:00-09:40", multi: true, content: [
-                { weeks: "1,3", subject: "Информационные технологии (ЛК)", teacher: "Гладун П.И.", room: "406" },
-                { weeks: "2,4", subject: "История белорусской государственности (ПЗ)", teacher: "Спартак А.А.", room: "428" }
-            ]},
-            { time: "09:55-11:35", subject: "Информационные технологии (ПЗ)", teacher: "Гладун П.И.", room: "406" },
-            { time: "12:15-13:55", subject: "Иностранный язык (ПЗ)", teacher: "Игнатьева Е.М.", room: "214/104" },
-            { time: "14:10-15:50", subject: "Аналитическая геометрия (ЛК)", teacher: "Василевский Г.В.", room: "405 / 410" }
-        ],
-        "Среда": [
-            { time: "08:00-09:40", subject: "Линейная алгебра и аналитическая геометрия (ПЗ)", teacher: "Рябенкова Л.А.", room: "430" },
-            { time: "09:55-11:35", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" },
-            { time: "12:15-13:55", subject: "Основы алгоритмизации и программирования (ЛК)", teacher: "Горбадей О.Ю.", room: "414" }
-        ],
-        "Четверг": [
-            { time: "08:00-09:40", subject: "ОАиП (ЛР) - все подгруппы", teacher: "", room: "212" },
-            { time: "09:55-11:35", subject: "История белорусской государственности (ЛК)", teacher: "Спартак А.А.", room: "222" },
-            { time: "12:15-13:55", subject: "Математический анализ (ЛК)", teacher: "Василевский Г.В.", room: "410" }
-        ],
-        "Пятница": [
-            { time: "08:00-09:40", subject: "Основы теории информации (ПЗ)", teacher: "Попова М.С.", room: "210" },
-            { time: "09:55-11:35", subject: "Основы теории информации (ЛК)", teacher: "Попова М.С.", room: "244" },
-            { time: "12:15-13:55", subject: "ОАиП / ИТ / ИГ (Работа по подгруппам)", teacher: "", room: "212 / 210 / к.2" },
-            { time: "14:10-15:50", subject: "ИГ (ПЗ) / ИТ (ЛР) - подгруппы", teacher: "", room: "к.2 / 210" }
-        ],
-        "Суббота": [
-            { time: "08:00-09:40", subject: "ИГ (ПЗ) / ИТ (ЛР) - подгруппы", teacher: "", room: "к.2 / 314" },
-            { time: "09:55-11:35", subject: "ИГ (ПЗ) / ИТ (ЛР) - подгруппы", teacher: "", room: "к.2 / 314" },
-            { time: "12:15-13:55", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" }
-        ]
-    },
-    "АП591": {
-        "Понедельник": [
-            { time: "09:55-11:35", subject: "Высшая математика (ЛК)", teacher: "Василевский Г.В.", room: "410" },
-            { time: "12:15-13:55", subject: "Высшая математика (ПЗ)", teacher: "Василевский Г.В.", room: "410" },
-            { time: "14:10-15:50", subject: "Физика (ЛК)", teacher: "Патапович М.П.", room: "402" },
-            { time: "16:20-18:00", subject: "Физика (ПЗ)", teacher: "Патапович М.П.", room: "428" }
-        ],
-        "Вторник": [
-            { time: "08:00-09:40", subject: "ИГ (ПЗ) / Физика (ЛР)", teacher: "", room: "к.2 / 402" },
-            { time: "09:55-11:35", subject: "ИГ (ПЗ) / Физика (ЛР)", teacher: "", room: "к.2 / 402" },
-            { time: "12:15-13:55", subject: "ИГ (ПЗ) / ОиМП (ЛР)", teacher: "", room: "к.2 / 104" },
-            { time: "14:10-15:50", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" }
-        ],
-        "Среда": [
-            { time: "08:00-09:40", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" },
-            { time: "09:55-11:35", subject: "Высшая математика (ЛК)", teacher: "Василевский Г.В.", room: "410" },
-            { time: "12:15-13:55", subject: "Иностранный язык (ПЗ)", teacher: "Старовойтова А.Г.", room: "109" }
-        ],
-        "Четверг": [
-            { time: "08:00-09:40", multi: true, content: [
-                { weeks: "1,3", subject: "История белорусской государственности (ПЗ)", teacher: "Спартак А.А.", room: "222" },
-                { weeks: "2,4", subject: "Информатика", teacher: "", room: "418" }
-            ]},
-            { time: "09:55-11:35", subject: "История белорусской государственности (ЛК)", teacher: "Спартак А.А.", room: "222" },
-            { time: "12:15-13:55", subject: "Белорусский язык (проф. лексика) (ПЗ)", teacher: "Быковских С.А.", room: "106" },
-            { time: "14:10-15:50", subject: "Культура профессиональной речи специалиста (ПЗ)", teacher: "Кухарчик И.Н.", room: "218/210" }
-        ],
-        "Пятница": [
-            { time: "08:00-09:40", subject: "ИГ (ПЗ) / Информатика", teacher: "", room: "к.2 / 418" },
-            { time: "09:55-11:35", subject: "ИГ (ПЗ) / Информатика", teacher: "", room: "к.2 / 418" },
-            { time: "12:15-13:55", subject: "Иностранный язык (ПЗ)", teacher: "Старовойтова / Пахирко", room: "214/314" },
-            { time: "14:10-15:50", multi: true, content: [
-                { weeks: "1,3", subject: "Иностранный язык (ПЗ)", teacher: "Мышелова / Пахирко", room: "214/314" },
-                { weeks: "2,4", subject: "Инженерная графика (ЛК)", teacher: "Кот М.А.", room: "430" }
-            ]},
-            { time: "16:20-18:00", multi: true, content: [
-               { weeks: "1,3", subject: "Информатика (ЛК)", teacher: "Гладун П.И.", room: "418" }
-            ]}
-        ],
-        "Суббота": [
-            { time: "14:10-15:50", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" }
-        ]
-    },
-    "МЦ591": {
-        "Понедельник": [
-            { time: "08:00-09:40", subject: "ИТ (ЛР) - подгруппы", teacher: "", room: "314" },
-            { time: "09:55-11:35", subject: "ИТ (ЛР) - подгруппы", teacher: "", room: "314" },
-            { time: "12:15-13:55", subject: "Высшая математика (ЛК)", teacher: "Булдык Г.М.", room: "414" },
-            { time: "14:10-15:50", subject: "Высшая математика (ПЗ)", teacher: "Булдык Г.М.", room: "306" },
-            { time: "16:20-18:00", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" }
-        ],
-        "Вторник": [
-            { time: "08:00-09:40", subject: "Экономическая теория (ПЗ)", teacher: "Борботько И.А.", room: "414" },
-            { time: "09:55-11:35", subject: "Экономическая теория (ЛК)", teacher: "Борботько И.А.", room: "428" },
-            { time: "12:15-13:55", subject: "Системы и сети связи (ПЗ)", teacher: "Кушнир-Северина", room: "418" },
-            { time: "14:10-15:50", subject: "Иностранный язык (ПЗ)", teacher: "Пахирко В.В.", room: "218" }
-        ],
-        "Среда": [
-            { time: "08:00-09:40", subject: "ИТ (ЛР) - подгруппы", teacher: "", room: "314" },
-            { time: "09:55-11:35", subject: "ИТ (ЛР) - подгруппы", teacher: "", room: "314" },
-            { time: "12:15-13:55", subject: "Высшая математика (ПЗ)", teacher: "Булдык Г.М.", room: "306" },
-            { time: "14:10-15:50", subject: "История белорусской государственности (ЛК)", teacher: "Спартак А.А.", room: "202" }
-        ],
-        "Четверг": [
-            { time: "08:00-09:40", multi: true, content: [
-                { weeks: "1,3", subject: "История экономических учений (ЛК)", teacher: "Геливер О.Г.", room: "324" },
-                { weeks: "2,4", subject: "История экономических учений (ПЗ)", teacher: "Геливер О.Г.", room: "324" }
-            ]},
-            { time: "09:55-11:35", subject: "История белорусской государственности (ЛК)", teacher: "Спартак А.А.", room: "222" },
-            { time: "12:15-13:55", subject: "Информационные технологии (ЛК/ПЗ)", teacher: "Лавшук О.А.", room: "412" },
-            { time: "14:10-15:50", subject: "Системы и сети связи (ЛК)", teacher: "Кушнир-Северина А.П.", room: "104" }
-        ],
-        "Пятница": [
-            { time: "09:55-11:35", subject: "Информационные технологии (ЛК/ПЗ)", teacher: "Лавшук О.А.", room: "412" },
-            { time: "12:15-13:55", subject: "Системы и сети связи (ЛК)", teacher: "Кушнир-Северина А.П.", room: "104" },
-            { time: "14:10-15:50", multi: true, content: [
-                { weeks: "1,3", subject: "Системы и сети связи (ЛК)", teacher: "Кушнир-Северина А.П.", room: "104" },
-                { weeks: "2,4", subject: "Организация бизнеса и его правовое обеспечение (ПЗ)", teacher: "Фалеева С.И.", room: "218" }
-            ]},
-             { time: "16:20-18:00", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" }
-        ],
-        "Суббота": [
-            { time: "12:15-13:55", subject: "Организация бизнеса и его правовое обеспечение (ЛК)", teacher: "Кравченко Ю.Р.", room: "406" },
-            { time: "14:10-15:50", subject: "Организация бизнеса и его правовое обеспечение (ЛК)", teacher: "Кравченко Ю.Р.", room: "406" }
-        ]
-    },
-    "ЦС591": {
-        "Понедельник": [
-            { time: "09:55-11:35", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" },
-            { time: "12:15-13:55", multi: true, content: [
-                { weeks: "1,3", subject: "История белорусской гос. (ЛК)", teacher: "Спартак А.А.", room: "202" },
-                { weeks: "2,4", subject: "Правовое обеспечение логистики (ПЗ)", teacher: "Коваленко Т.Г.", room: "212" }
-            ]},
-            { time: "14:10-15:50", multi: true, content: [
-                { weeks: "1,3", subject: "История белорусской гос. (ПЗ)", teacher: "Спартак А.А.", room: "106" },
-                { weeks: "2,4", subject: "Управление инновациями в логистике (ПЗ)", teacher: "Коваленко Т.Г.", room: "212" }
-            ]},
-            { time: "16:20-18:00", multi: true, content: [
-                { weeks: "1,3", subject: "Системы диспетчеризации (ЛК)", teacher: "Стрельская Н.А.", room: "405" },
-                { weeks: "2,4", subject: "История белорусской гос. (ПЗ)", teacher: "Спартак А.А.", room: "406" }
-            ]}
-        ],
-        "Вторник": [
-            { time: "08:00-09:40", subject: "Иностранный язык (ПЗ)", teacher: "Пахирко В.В.", room: "214/104" },
-            { time: "09:55-11:35", subject: "Правовое обеспечение логистики (ЛК)", teacher: "Коваленко Т.Г.", room: "405" },
-            { time: "12:15-13:55", subject: "Управление инновациями в логистике (ЛК)", teacher: "Коваленко Т.Г.", room: "218" }
-        ],
-        "Среда": [
-            { time: "08:00-09:40", subject: "ИТ (ЛР) - подгруппа 2", teacher: "", room: "314" },
-            { time: "09:55-11:35", subject: "ИТ (ЛР) - подгруппа 2", teacher: "", room: "314" },
-            { time: "12:15-13:55", subject: "История белорусской государственности (ЛК)", teacher: "Спартак А.А.", room: "106" },
-            { time: "14:10-15:50", subject: "Управление инновациями в логистике (ПЗ) [2,4 нед]", teacher: "Коваленко Т.Г.", room: "212" },
-            { time: "16:20-18:00", subject: "Бизнес и анализ в IT (ЛК/ПЗ)", teacher: "Лукашик Т.М.", room: "418 / 306" }
-        ],
-        "Четверг": [
-            { time: "08:00-09:40", subject: "Иностранный язык (ПЗ)", teacher: "Пахирко В.В. / Ращинская И.Н.", room: "214/104" },
-            { time: "09:55-11:35", subject: "Экономика предприятия / Экон. теория (ЛК)", teacher: "Кравченко Ю.Р.", room: "324" },
-            { time: "12:15-13:55", subject: "Введение в специальность (ЛК/ПЗ) [2,4 нед]", teacher: "Кобринский Г.Е.", room: "414" }
-        ],
-        "Пятница": [
-            { time: "08:00-09:40", subject: "Линейная алгебра и аналитическая геометрия (ЛК)", teacher: "Василевский Г.В.", room: "430" },
-            { time: "09:55-11:35", subject: "Физическая культура", teacher: "Колесникович В.П.", room: "" },
-            { time: "12:15-13:55", subject: "СМОБД (ЛР) [1,3 подгруппы]", teacher: "", room: "414" },
-            { time: "14:10-15:50", subject: "СМОБД (ЛР) [1,3 подгруппы]", teacher: "", room: "414" }
-        ],
-        "Суббота": [
-            { time: "08:00-09:40", multi: true, content: [
-                { weeks: "1,3", subject: "Экономика предприятия / Экон. теория (ПЗ)", teacher: "Кравченко Ю.Р.", room: "218" },
-                { weeks: "2,4", subject: "Современные методы обработки больших данных (ЛК)", teacher: "Киринович И.Ф.", room: "328" }
-            ]},
-            { time: "09:55-11:35", multi: true, content: [
-                { weeks: "1,3", subject: "Экономика предприятия / Экон. теория (ПЗ)", teacher: "Кравченко Ю.Р.", room: "218" },
-                { weeks: "2,4", subject: "Современные методы обработки больших данных (ПЗ)", teacher: "Киринович И.Ф.", room: "328" }
-            ]}
-        ]
+// == 1. ІНІЦЫЯЛІЗАЦЫЯ ==
+async function initApp() {
+    // Правяраем, ці ёсць токен у памяці браўзера
+    const savedToken = localStorage.getItem('bsac_gh_token');
+    
+    if (savedToken) {
+        // Калі токен ёсць, правяраем яго валіднасць праз хэш (на выпадак падмены)
+        const checkHash = await sha256(SALT + savedToken);
+        if (checkHash === TARGET_HASH) {
+            isAdmin = true;
+            githubToken = savedToken;
+            document.getElementById('adminBadge').classList.remove('hidden');
+        } else {
+            // Калі хэш не супаў (токен састарэў ці падроблены), чысцім
+            localStorage.removeItem('bsac_gh_token');
+        }
     }
-};
 
-// == ЭЛЕМЕНТЫ DOM ==
+    // Загрузка JSON
+    try {
+        const response = await fetch(`${FILE_PATH}?t=${new Date().getTime()}`);
+        if (!response.ok) throw new Error("Немагчыма загрузіць schedule.json");
+        scheduleData = await response.json();
+    } catch (e) {
+        console.error(e);
+        document.getElementById('scheduleContainer').innerHTML = `<div class="placeholder" style="color:red">Error: ${e.message}</div>`;
+    }
+
+    updateButtons();
+}
+
+// == ФУНКЦЫЯ ЗАХАВАННЯ НА GITHUB (API) ==
+async function saveToGithub() {
+    if (!githubToken) {
+        alert("Памылка: Няма доступу. Пезайдите ў адмінку.");
+        return;
+    }
+
+    const btn = document.querySelector('.global-save-btn');
+    if(btn) btn.textContent = "⏳ Захаванне...";
+
+    try {
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        
+        // 1. Атрымліваем SHA файла
+        const getResponse = await fetch(apiUrl, {
+            headers: { 
+                "Authorization": `token ${githubToken}`,
+                "Accept": "application/vnd.github.v3+json"
+            }
+        });
+        
+        if (!getResponse.ok) throw new Error("Памылка доступу да API. Праверце права токена.");
+        const fileData = await getResponse.json();
+        const fileSha = fileData.sha;
+
+        // 2. Рыхтуем змест
+        const jsonString = JSON.stringify(scheduleData, null, 2);
+        // Кадзіроўка UTF-8 у Base64
+        const base64Content = btoa(unescape(encodeURIComponent(jsonString)));
+
+        // 3. Адпраўляем абнаўленне
+        const putResponse = await fetch(apiUrl, {
+            method: "PUT",
+            headers: {
+                "Authorization": `token ${githubToken}`,
+                "Accept": "application/vnd.github.v3+json",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: "Update schedule via Web Interface",
+                content: base64Content,
+                sha: fileSha
+            })
+        });
+
+        if (!putResponse.ok) throw new Error("Не ўдалося захаваць змены.");
+
+        alert("✅ Расклад абноўлены!");
+        if(btn) btn.textContent = "☁️ Захаваць на GitHub";
+
+    } catch (e) {
+        alert(`❌ Памылка: ${e.message}`);
+        if(btn) btn.textContent = "❌ Памылка";
+    }
+}
+
+// == UI / RENDER ==
 const select = document.getElementById('groupSelect');
 const container = document.getElementById('scheduleContainer');
 const themeBtn = document.getElementById('themeBtn');
 const langBtn = document.getElementById('langBtn');
 
-const uiTitle = document.getElementById('uiTitle');
-const uiLabel = document.getElementById('uiLabel');
-const uiPlaceholder = document.getElementById('uiPlaceholder');
-const uiSelectDefault = document.getElementById('uiSelectDefault');
-
-// == ФУНКЦИИ УПРАВЛЕНИЯ UI ==
-
-// 1. Смена темы
 themeBtn.addEventListener('click', () => {
     document.body.classList.toggle('dark-theme');
-    
-    // Меняем иконку/текст кнопки в зависимости от текущей темы и языка
     currentTheme = document.body.classList.contains('dark-theme') ? 'dark' : 'light';
     updateButtons();
 });
 
-// 2. Смена языка
 langBtn.addEventListener('click', () => {
     currentLang = currentLang === 'ru' ? 'be' : 'ru';
     updateLanguage();
     updateButtons();
-    
-    // Если группа уже выбрана, перерисовываем расписание с новым языком
-    if (select.value) {
-        renderSchedule(select.value);
-    }
+    if (select.value) renderSchedule(select.value);
 });
 
 function updateButtons() {
@@ -305,21 +162,13 @@ function updateButtons() {
 
 function updateLanguage() {
     const t = translations[currentLang];
-    uiTitle.textContent = t.title;
-    uiLabel.textContent = t.selectLabel;
-    uiSelectDefault.textContent = t.selectDefault;
-    
-    // Если расписание не выбрано, обновляем плейсхолдер
-    if (!select.value) {
-        uiPlaceholder.textContent = t.placeholder;
-    }
+    document.getElementById('uiTitle').textContent = t.title;
+    document.getElementById('uiLabel').textContent = t.selectLabel;
+    document.getElementById('uiSelectDefault').textContent = t.selectDefault;
+    if (!select.value) document.getElementById('uiPlaceholder').textContent = t.placeholder;
 }
 
-// 3. Отрисовка расписания
-select.addEventListener('change', (e) => {
-    const group = e.target.value;
-    renderSchedule(group);
-});
+select.addEventListener('change', (e) => renderSchedule(e.target.value));
 
 function renderSchedule(group) {
     container.innerHTML = '';
@@ -330,7 +179,16 @@ function renderSchedule(group) {
         return;
     }
 
-    // Порядок ключей (они всегда на русском в базе данных)
+    if (isAdmin) {
+        const globalSaveBtn = document.createElement('button');
+        globalSaveBtn.className = 'login-btn global-save-btn';
+        globalSaveBtn.style.marginBottom = '20px';
+        globalSaveBtn.style.backgroundColor = '#8e44ad';
+        globalSaveBtn.textContent = translations[currentLang].btnSave;
+        globalSaveBtn.onclick = saveToGithub;
+        container.appendChild(globalSaveBtn);
+    }
+
     const daysOrder = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
 
     daysOrder.forEach(dayKey => {
@@ -340,64 +198,36 @@ function renderSchedule(group) {
         const dayBlock = document.createElement('div');
         dayBlock.className = 'schedule-day';
 
-        // ПЕРЕВОД ЗАГОЛОВКА ДНЯ
-        // Берем русский ключ (dayKey) и ищем его перевод в словаре translations
-        const translatedDayName = translations[currentLang].days[dayKey];
-
         const dayTitle = document.createElement('div');
         dayTitle.className = 'day-title';
-        dayTitle.textContent = translatedDayName; // Ставим переведенное название
+        dayTitle.textContent = translations[currentLang].days[dayKey] || dayKey;
         dayBlock.appendChild(dayTitle);
 
         const tableWrapper = document.createElement('div');
         tableWrapper.className = 'table-wrapper';
-
         const table = document.createElement('table');
         
-        daySchedule.forEach(lesson => {
+        daySchedule.forEach((lesson, index) => {
             const row = document.createElement('tr');
-
+            
             const timeCell = document.createElement('td');
             timeCell.style.width = "15%";
             timeCell.innerHTML = `<strong>${lesson.time}</strong>`;
             
             const infoCell = document.createElement('td');
+            infoCell.id = `cell-${group}-${dayKey}-${index}`;
 
             if (lesson.multi) {
-                lesson.content.forEach(item => {
+                lesson.content.forEach((item, subIndex) => {
                     const div = document.createElement('div');
                     div.className = 'week-split';
-                    
-                    let weekText = '';
-                    if (item.weeks) {
-                        const weekClass = item.weeks.includes('1') ? 'week-odd' : 'week-even';
-                        // Слово "нед." тоже можно вынести в словарь, но пока оставим
-                        const weekLabel = currentLang === 'be' ? 'тыд.' : 'нед.';
-                        weekText = `<span class="week-badge ${weekClass}">${item.weeks} ${weekLabel}</span>`;
-                    }
-                    
-                    div.innerHTML = `
-                        ${weekText}
-                        <span class="subject">${item.subject}</span>
-                        <div class="details">${item.teacher || ''}</div>
-                        <div class="location">Ауд. ${item.room || '-'}</div>
-                    `;
+                    div.innerHTML = generateLessonHTML(item, true);
+                    if (isAdmin) div.appendChild(createAdminControls(group, dayKey, index, subIndex));
                     infoCell.appendChild(div);
                 });
             } else {
-                let weekBadge = '';
-                if(lesson.weeks) {
-                     const weekClass = lesson.weeks.includes('1') ? 'week-odd' : 'week-even';
-                     const weekLabel = currentLang === 'be' ? 'тыд.' : 'нед.';
-                     weekBadge = `<span class="week-badge ${weekClass}">${lesson.weeks} ${weekLabel}</span>`;
-                }
-
-                infoCell.innerHTML = `
-                    ${weekBadge}
-                    <span class="subject">${lesson.subject}</span>
-                    <div class="details">${lesson.teacher || ''}</div>
-                    <div class="location">Ауд. ${lesson.room || '-'}</div>
-                `;
+                infoCell.innerHTML = generateLessonHTML(lesson, false);
+                if (isAdmin) infoCell.appendChild(createAdminControls(group, dayKey, index, null));
             }
 
             row.appendChild(timeCell);
@@ -411,5 +241,172 @@ function renderSchedule(group) {
     });
 }
 
-// Инициализация при загрузке
-updateButtons();
+function generateLessonHTML(item, showWeeks) {
+    let weekText = '';
+    if (item.weeks || showWeeks) {
+        const w = item.weeks || '';
+        const weekClass = (w.includes('1')) ? 'week-odd' : 'week-even';
+        const weekLabel = currentLang === 'be' ? 'тыд.' : 'нед.';
+        if(w) weekText = `<span class="week-badge ${weekClass}">${w} ${weekLabel}</span>`;
+    }
+    return `
+        ${weekText}
+        <span class="subject">${item.subject}</span>
+        <div class="details">${item.teacher || ''}</div>
+        <div class="location">Ауд. ${item.room || '-'}</div>
+    `;
+}
+
+function createAdminControls(group, day, index, subIndex) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'admin-controls';
+    
+    const btnEdit = document.createElement('button');
+    btnEdit.className = 'btn-edit';
+    btnEdit.textContent = "✎";
+    btnEdit.onclick = () => enableEditMode(group, day, index, subIndex);
+
+    const btnDel = document.createElement('button');
+    btnDel.className = 'btn-delete';
+    btnDel.textContent = "✖";
+    btnDel.onclick = () => deleteLesson(group, day, index, subIndex);
+
+    wrapper.appendChild(btnEdit);
+    wrapper.appendChild(btnDel);
+    return wrapper;
+}
+
+function deleteLesson(group, day, index, subIndex) {
+    if(!confirm("Выдаліць пару?")) return;
+    if (subIndex !== null) {
+        scheduleData[group][day][index].content.splice(subIndex, 1);
+        if(scheduleData[group][day][index].content.length === 0) scheduleData[group][day].splice(index, 1);
+    } else {
+        scheduleData[group][day].splice(index, 1);
+    }
+    renderSchedule(group);
+}
+
+function enableEditMode(group, day, index, subIndex) {
+    let targetObj;
+    let containerEl;
+
+    if (subIndex !== null) {
+        targetObj = scheduleData[group][day][index].content[subIndex];
+        const td = document.getElementById(`cell-${group}-${day}-${index}`);
+        containerEl = td.getElementsByClassName('week-split')[subIndex];
+    } else {
+        targetObj = scheduleData[group][day][index];
+        containerEl = document.getElementById(`cell-${group}-${day}-${index}`);
+    }
+
+    containerEl.innerHTML = `
+        <div style="background:#f9f9f9; padding:5px; border:1px solid #ccc;">
+            <input type="text" class="edit-input inp-weeks" value="${targetObj.weeks || ''}" placeholder="Тыдні (1,3)">
+            <input type="text" class="edit-input inp-subj" value="${targetObj.subject || ''}" placeholder="Прадмет">
+            <input type="text" class="edit-input inp-teacher" value="${targetObj.teacher || ''}" placeholder="Выкладчык">
+            <input type="text" class="edit-input inp-room" value="${targetObj.room || ''}" placeholder="Аўдыторыя">
+            <div class="admin-controls">
+                <button class="btn-save" style="background:green">OK</button>
+                <button class="btn-cancel" style="background:gray">Cancel</button>
+            </div>
+        </div>
+    `;
+
+    const btnSave = containerEl.querySelector('.btn-save');
+    const btnCancel = containerEl.querySelector('.btn-cancel');
+
+    btnSave.onclick = () => {
+        targetObj.weeks = containerEl.querySelector('.inp-weeks').value;
+        targetObj.subject = containerEl.querySelector('.inp-subj').value;
+        targetObj.teacher = containerEl.querySelector('.inp-teacher').value;
+        targetObj.room = containerEl.querySelector('.inp-room').value;
+        renderSchedule(group);
+    };
+    btnCancel.onclick = () => renderSchedule(group);
+}
+
+// == АЎТАРЫЗАЦЫЯ І ХЭШАВАННЕ ==
+
+const logoImg = document.getElementById('secretLogo');
+const loginModal = document.getElementById('adminModal');
+const logoutModal = document.getElementById('logoutModal');
+const loginForm = document.getElementById('loginForm');
+const msgBox = document.getElementById('loginMessage');
+const logoutBtn = document.getElementById('logoutBtn');
+
+let clickCount = 0;
+let clickTimer = null;
+
+if(logoImg) {
+    logoImg.addEventListener('click', () => {
+        clickCount++;
+        clearTimeout(clickTimer);
+        clickTimer = setTimeout(() => { clickCount = 0; }, 400);
+
+        if (clickCount >= 10) {
+            clickCount = 0;
+            if (isAdmin) logoutModal.classList.remove('hidden');
+            else {
+                loginModal.classList.remove('hidden');
+                msgBox.textContent = "";
+                document.getElementById('apiTokenInput').value = "";
+            }
+        }
+    });
+}
+
+document.getElementById('closeLoginModal').addEventListener('click', () => loginModal.classList.add('hidden'));
+document.getElementById('closeLogoutModal').addEventListener('click', () => logoutModal.classList.add('hidden'));
+
+// Функцыя SHA-256
+async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Апрацоўка УВАХОДУ
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const tokenInput = document.getElementById('apiTokenInput').value.trim();
+    
+    // Вылічваем хэш ад уведзенага токена
+    const calculatedHash = await sha256(SALT + tokenInput);
+    
+    // Звяраем з захаваным хэшам
+    if (calculatedHash === TARGET_HASH) {
+        msgBox.textContent = "Успех! (Доступ дазволены)";
+        msgBox.style.color = "#2ecc71";
+        
+        // Калі супала, захоўваем АРЫГІНАЛЬНЫ токен (ён патрэбен для API)
+        localStorage.setItem('bsac_gh_token', tokenInput);
+        
+        setTimeout(() => {
+            loginModal.classList.add('hidden');
+            location.reload();
+        }, 500);
+    } else {
+        msgBox.textContent = "Няправільны токен";
+        msgBox.style.color = "#e74c3c";
+    }
+});
+
+// Апрацоўка ВЫХАДУ
+logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('bsac_gh_token');
+    location.reload();
+});
+
+// == КАМАНДА ДЛЯ ГЕНЕРАЦЫІ ВАШАГА ХЭША ==
+// Выклікаць у кансолі браўзера: await generateHash("ghp_MyRealToken...")
+window.generateHash = async (token) => {
+    const h = await sha256(SALT + token);
+    console.log(`%cВаш хэш для ўстаўкі ў код:`, 'color: orange; font-weight: bold;');
+    console.log(h);
+    return h;
+};
+
+// Запуск
+initApp();
