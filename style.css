@@ -364,3 +364,7 @@ body.dark-theme .empty-slot { background: rgba(255,255,255,0.03); }
     th, td { padding: 12px 10px; }
     .time-col { width: 90px; font-size: 0.85rem; }
 }
+
+.hidden {
+    visibility: hidden;
+}

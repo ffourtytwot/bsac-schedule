@@ -130,7 +130,7 @@ async function initApp() {
         if (checkHash === TARGET_HASH) {
             state.isAdmin = true;
             state.token = savedToken;
-            document.getElementById('adminBadge').classList.remove('hidden');
+            document.getElementById('adminBadge').classList.toggle('hidden');
         }
     }
 
@@ -517,7 +517,7 @@ let clicks = 0, timer;
 logo.addEventListener('click', () => {
     clicks++;
     clearTimeout(timer);
-    timer = setTimeout(() => clicks=0, 400);
+    timer = setTimeout(() => clicks=0, 700);
     if (clicks >= 10) {
         clicks = 0;
         if (state.isAdmin) logoutModal.classList.remove('hidden');
