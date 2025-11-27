@@ -10,8 +10,8 @@
 
     <header>
         <div class="header-left">
-            <!-- Логотип, который должен лежать рядом с index.html -->
-            <img src="logo.jpg" alt="Logo" class="logo">
+            <!-- Логотип: націсніце 10 разоў для ўваходу ў адмінку -->
+            <img src="logo.jpg" alt="Logo" class="logo" id="secretLogo">
             <h1 id="uiTitle">Расписание БГАС 1 Курс</h1>
         </div>
 
@@ -19,6 +19,9 @@
             <div class="settings-btns">
                 <button id="themeBtn" class="icon-btn">🌙</button>
                 <button id="langBtn" class="text-btn">BE</button>
+                
+                <!-- Значок адміна (схаваны па змаўчанні) -->
+                <span id="adminBadge" class="hidden">👑 ADMIN</span>
             </div>
             
             <div class="group-selector">
@@ -36,10 +39,42 @@
     </header>
 
     <main id="scheduleContainer">
+        <!-- Сюды JS загрузіць расклад -->
         <div class="placeholder" id="uiPlaceholder">
-            Пожалуйста, выберите группу, чтобы увидеть расписание.
+            Пожалуйста, выберите группу. (Загрузка...)
         </div>
     </main>
+
+    <!-- МОДАЛЬНАЕ АКНО УВАХОДУ (Толькі Токен) -->
+    <div id="adminModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn" id="closeLoginModal">&times;</span>
+            <h2>Уваход для мадэратара</h2>
+            <p>Увядзіце ваш <strong>GitHub Token</strong></p>
+            
+            <form id="loginForm">
+                <!-- Адзінае поле для ўводу Токена -->
+                <input type="password" id="apiTokenInput" placeholder="ghp_xxxxxxxxxxxx..." required autocomplete="off">
+                
+                <p style="font-size: 0.8rem; color: #777; margin-bottom: 15px;">
+                    Гэты токен выкарыстоўваецца як пароль і як ключ для захавання файлаў на GitHub.
+                </p>
+                
+                <button type="submit" class="login-btn">Увайсці</button>
+            </form>
+            <div id="loginMessage"></div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНАЕ АКНО ВЫХАДУ -->
+    <div id="logoutModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn" id="closeLogoutModal">&times;</span>
+            <h2>Рэжым мадэратара</h2>
+            <p>Вы жадаеце выйсці?</p>
+            <button id="logoutBtn" class="login-btn" style="background-color: #e74c3c;">Выйсці (Logout)</button>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
