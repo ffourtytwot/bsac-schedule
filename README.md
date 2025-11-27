@@ -1,2 +1,2 @@
 # bsac-schedule
-My project for BSAC &lt;
+My project for BSAC &lt;3
