@@ -1,7 +1,7 @@
 // == НАЛАДЫ (ЗАПОЎНІЦЕ ГЭТА!) ==
 const REPO_OWNER = "User";       
 const REPO_NAME = "Repo";     
-const FILE_PATH = "schedule.json"; 
+const FILE_PATH = "https://raw.githubusercontent.com/ffourtytwot/bsac-schedule/main/schedule.json"; 
 const SALT = "bsac_super_salt_2025"; 
 const TARGET_HASH = "38bff4d29d08888d2f3c8e0250551c3d7662bcc2cd1490048dc22a89502afc41"; // generateHash("ghp_...")
 
