@@ -1,412 +1,564 @@
-// == НАЛАДЫ РЭПАЗІТОРЫЯ ==
-const REPO_OWNER = "ffourtytwot";       // Напрыклад: "user123"
-const REPO_NAME = "bsac-schedule";     // Напрыклад: "bsac-schedule"
-const FILE_PATH = "schedule.json"; // Імя файла
-
-// == БЯСПЕКА ==
+// == НАЛАДЫ (ЗАПОЎНІЦЕ ГЭТА!) ==
+const REPO_OWNER = "User";       
+const REPO_NAME = "Repo";     
+const FILE_PATH = "schedule.json"; 
 const SALT = "bsac_super_salt_2025"; 
-// Сюды трэба ўставіць хэш вашага токена.
-// Як яго атрымаць: адкрыйце кансоль браўзера і ўвядзіце: await generateHash("ваш_токен_ghp...")
-// Скапіруйце вынік і ўстаўце ніжэй.
-const TARGET_HASH = "38bff4d29d08888d2f3c8e0250551c3d7662bcc2cd1490048dc22a89502afc41"; 
+const TARGET_HASH = "38bff4d29d08888d2f3c8e0250551c3d7662bcc2cd1490048dc22a89502afc41"; // generateHash("ghp_...")
 
-// == UI НАЛАДЫ ==
+// == ЧАСАВЫЯ СЛОТЫ (Шаблон дня) ==
+const TIME_SLOTS = [
+    "08:00-09:40",
+    "09:55-11:35",
+    "12:15-13:55",
+    "14:10-15:50",
+    "16:20-18:00",
+    "18:15-19:55" // Вячэрняя, калі трэба
+];
+
+// == ЛАКАЛІЗАЦЫЯ (ПОЎНАЯ) ==
 const translations = {
     ru: {
         title: "Расписание БГАС 1 Курс",
-        selectLabel: "Выберите группу:",
-        selectDefault: "-- Группа --",
-        placeholder: "Пожалуйста, выберите группу. (Загрузка...)",
-        themeBtnLight: "☀️ Светлая",
-        themeBtnDark: "🌙 Тёмная",
-        langBtn: "RU",
+        selectLabel: "Группа:",
+        selectDefault: "-- Выберите --",
+        placeholder: "Выберите группу для просмотра расписания.",
+        loading: "Загрузка данных...",
+        errorLoad: "Ошибка загрузки schedule.json",
+        modalTitle: "Вход модератора",
+        modalDesc: "Введите GitHub Token",
+        modalHint: "Токен сохранится в вашем браузере.",
+        btnLogin: "Войти",
+        logoutTitle: "Режим модератора",
+        logoutDesc: "Вы действительно хотите выйти?",
+        btnLogout: "Выйти",
+        themeLight: "☀️ Светлая",
+        themeDark: "🌙 Тёмная",
+        successAccess: "Доступ разрешен!",
+        errorAccess: "Неверный токен.",
+        successSave: "✅ Изменения успешно сохранены на GitHub!",
+        errorSave: "❌ Ошибка сохранения: ",
+        confirmDelete: "Очистить этот слот? (Он станет пустым шаблоном)",
+        btnSaveGlobal: "☁️ Сохранить на GitHub",
+        saving: "⏳ Сохранение...",
+        
+        // Элементы пар
+        emptySlot: "Нет занятий",
+        btnAdd: "➕ Добавить",
         btnEdit: "✎",
         btnDelete: "✖",
-        btnSave: "☁️ Сохранить на GitHub",
-        btnCancel: "🚫",
-        days: { "Понедельник": "Понедельник", "Вторник": "Вторник", "Среда": "Среда", "Четверг": "Четверг", "Пятница": "Пятница", "Суббота": "Суббота" }
+        btnOk: "OK",
+        btnCancel: "Отмена",
+        lblWeeks: "Недели (напр. 1,3)",
+        lblSubj: "Предмет",
+        lblTeach: "Преподаватель",
+        lblRoom: "Аудитория",
+        
+        days: { 
+            "Понедельник": "Понедельник", "Вторник": "Вторник", "Среда": "Среда", 
+            "Четверг": "Четверг", "Пятница": "Пятница", "Суббота": "Суббота" 
+        }
     },
     be: {
         title: "Расклад БДАС 1 Курс",
-        selectLabel: "Абярыце групу:",
-        selectDefault: "-- Група --",
-        placeholder: "Калі ласка, абярыце групу. (Загрузка...)",
-        themeBtnLight: "☀️ Светлая",
-        themeBtnDark: "🌙 Цёмная",
-        langBtn: "BY",
+        selectLabel: "Група:",
+        selectDefault: "-- Абярыце --",
+        placeholder: "Абярыце групу, каб пабачыць расклад.",
+        loading: "Загрузка дадзеных...",
+        errorLoad: "Памылка загрузкі schedule.json",
+        modalTitle: "Уваход мадэратара",
+        modalDesc: "Увядзіце GitHub Token",
+        modalHint: "Токен захаваецца ў вашым браўзеры.",
+        btnLogin: "Увайсці",
+        logoutTitle: "Рэжым мадэратара",
+        logoutDesc: "Сапраўды выйсці?",
+        btnLogout: "Выйсці",
+        themeLight: "☀️ Светлая",
+        themeDark: "🌙 Цёмная",
+        successAccess: "Доступ дазволены!",
+        errorAccess: "Няправільны токен.",
+        successSave: "✅ Змены паспяхова захаваны на GitHub!",
+        errorSave: "❌ Памылка захавання: ",
+        confirmDelete: "Ачысціць гэты слот? (Ён стане пустым)",
+        btnSaveGlobal: "☁️ Захаваць на GitHub",
+        saving: "⏳ Захаванне...",
+
+        emptySlot: "Няма заняткаў",
+        btnAdd: "➕ Дадаць",
         btnEdit: "✎",
         btnDelete: "✖",
-        btnSave: "☁️ Захаваць на GitHub",
-        btnCancel: "🚫",
-        days: { "Понедельник": "Панядзелак", "Вторник": "Аўторак", "Среда": "Серада", "Четверг": "Чацвер", "Пятница": "Пятніца", "Суббота": "Субота" }
+        btnOk: "OK",
+        btnCancel: "Скасаваць",
+        lblWeeks: "Тыдні (напр. 1,3)",
+        lblSubj: "Прадмет",
+        lblTeach: "Выкладчык",
+        lblRoom: "Аўдыторыя",
+
+        days: { 
+            "Понедельник": "Панядзелак", "Вторник": "Аўторак", "Среда": "Серада", 
+            "Четверг": "Чацвер", "Пятница": "Пятніца", "Суббота": "Субота" 
+        }
     }
 };
 
-let currentLang = 'ru';
-let currentTheme = 'light';
-let isAdmin = false;
-let scheduleData = {};
-let githubToken = ""; 
+// Стан праграмы
+let state = {
+    lang: 'ru',
+    theme: 'light',
+    group: '',
+    isAdmin: false,
+    token: ''
+};
 
-// == 1. ІНІЦЫЯЛІЗАЦЫЯ ==
+let scheduleData = {};
+const daysOrder = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+
+// == 1. ІНІЦЫЯЛІЗАЦЫЯ І КЭШ ==
 async function initApp() {
-    // Правяраем, ці ёсць токен у памяці браўзера
+    // 1. Чытаем налады з кэша
+    const cachedSettings = localStorage.getItem('bsac_settings');
+    if (cachedSettings) {
+        const parsed = JSON.parse(cachedSettings);
+        state.lang = parsed.lang || 'ru';
+        state.theme = parsed.theme || 'light';
+        state.group = parsed.group || '';
+    }
+
+    // 2. Чытаем токен
     const savedToken = localStorage.getItem('bsac_gh_token');
-    
     if (savedToken) {
-        // Калі токен ёсць, правяраем яго валіднасць праз хэш (на выпадак падмены)
         const checkHash = await sha256(SALT + savedToken);
         if (checkHash === TARGET_HASH) {
-            isAdmin = true;
-            githubToken = savedToken;
+            state.isAdmin = true;
+            state.token = savedToken;
             document.getElementById('adminBadge').classList.remove('hidden');
-        } else {
-            // Калі хэш не супаў (токен састарэў ці падроблены), чысцім
-            localStorage.removeItem('bsac_gh_token');
         }
     }
 
-    // Загрузка JSON
+    // 3. Прымяняем налады
+    applyTheme();
+    applyLang();
+    document.getElementById('groupSelect').value = state.group;
+
+    // 4. Загружаем дадзеныя
     try {
         const response = await fetch(`${FILE_PATH}?t=${new Date().getTime()}`);
-        if (!response.ok) throw new Error("Немагчыма загрузіць schedule.json");
+        if (!response.ok) throw new Error("HTTP " + response.status);
         scheduleData = await response.json();
+        
+        if (state.group) renderSchedule(state.group);
     } catch (e) {
         console.error(e);
-        document.getElementById('scheduleContainer').innerHTML = `<div class="placeholder" style="color:red">Error: ${e.message}</div>`;
-    }
-
-    updateButtons();
-}
-
-// == ФУНКЦЫЯ ЗАХАВАННЯ НА GITHUB (API) ==
-async function saveToGithub() {
-    if (!githubToken) {
-        alert("Памылка: Няма доступу. Пезайдите ў адмінку.");
-        return;
-    }
-
-    const btn = document.querySelector('.global-save-btn');
-    if(btn) btn.textContent = "⏳ Захаванне...";
-
-    try {
-        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-        
-        // 1. Атрымліваем SHA файла
-        const getResponse = await fetch(apiUrl, {
-            headers: { 
-                "Authorization": `token ${githubToken}`,
-                "Accept": "application/vnd.github.v3+json"
-            }
-        });
-        
-        if (!getResponse.ok) throw new Error("Памылка доступу да API. Праверце права токена.");
-        const fileData = await getResponse.json();
-        const fileSha = fileData.sha;
-
-        // 2. Рыхтуем змест
-        const jsonString = JSON.stringify(scheduleData, null, 2);
-        // Кадзіроўка UTF-8 у Base64
-        const base64Content = btoa(unescape(encodeURIComponent(jsonString)));
-
-        // 3. Адпраўляем абнаўленне
-        const putResponse = await fetch(apiUrl, {
-            method: "PUT",
-            headers: {
-                "Authorization": `token ${githubToken}`,
-                "Accept": "application/vnd.github.v3+json",
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                message: "Update schedule via Web Interface",
-                content: base64Content,
-                sha: fileSha
-            })
-        });
-
-        if (!putResponse.ok) throw new Error("Не ўдалося захаваць змены.");
-
-        alert("✅ Расклад абноўлены!");
-        if(btn) btn.textContent = "☁️ Захаваць на GitHub";
-
-    } catch (e) {
-        alert(`❌ Памылка: ${e.message}`);
-        if(btn) btn.textContent = "❌ Памылка";
+        document.getElementById('uiPlaceholder').textContent = t('errorLoad') + ": " + e.message;
     }
 }
 
-// == UI / RENDER ==
-const select = document.getElementById('groupSelect');
-const container = document.getElementById('scheduleContainer');
+// Захаванне налад
+function saveSettings() {
+    localStorage.setItem('bsac_settings', JSON.stringify({
+        lang: state.lang,
+        theme: state.theme,
+        group: state.group
+    }));
+}
+
+// Хэлпер перакладу
+function t(key) {
+    return translations[state.lang][key] || key;
+}
+
+// == UI ЛОГІКА ==
 const themeBtn = document.getElementById('themeBtn');
 const langBtn = document.getElementById('langBtn');
+const groupSelect = document.getElementById('groupSelect');
 
 themeBtn.addEventListener('click', () => {
-    document.body.classList.toggle('dark-theme');
-    currentTheme = document.body.classList.contains('dark-theme') ? 'dark' : 'light';
-    updateButtons();
+    state.theme = state.theme === 'light' ? 'dark' : 'light';
+    applyTheme();
+    saveSettings();
 });
 
 langBtn.addEventListener('click', () => {
-    currentLang = currentLang === 'ru' ? 'be' : 'ru';
-    updateLanguage();
-    updateButtons();
-    if (select.value) renderSchedule(select.value);
+    state.lang = state.lang === 'ru' ? 'be' : 'ru';
+    applyLang();
+    if(state.group) renderSchedule(state.group); // Перарысоўка раскладу на новай мове
+    saveSettings();
 });
 
-function updateButtons() {
-    const t = translations[currentLang];
-    themeBtn.textContent = currentTheme === 'light' ? t.themeBtnLight : t.themeBtnDark;
-    langBtn.textContent = t.langBtn;
+groupSelect.addEventListener('change', (e) => {
+    state.group = e.target.value;
+    renderSchedule(state.group);
+    saveSettings();
+});
+
+function applyTheme() {
+    document.body.className = state.theme === 'dark' ? 'dark-theme' : '';
+    themeBtn.textContent = t(state.theme === 'light' ? 'themeLight' : 'themeDark');
 }
 
-function updateLanguage() {
-    const t = translations[currentLang];
-    document.getElementById('uiTitle').textContent = t.title;
-    document.getElementById('uiLabel').textContent = t.selectLabel;
-    document.getElementById('uiSelectDefault').textContent = t.selectDefault;
-    if (!select.value) document.getElementById('uiPlaceholder').textContent = t.placeholder;
-}
-
-select.addEventListener('change', (e) => renderSchedule(e.target.value));
-
-function renderSchedule(group) {
-    container.innerHTML = '';
-    const data = scheduleData[group];
+function applyLang() {
+    langBtn.textContent = state.lang.toUpperCase();
     
-    if (!data) {
-        container.innerHTML = `<div class="placeholder">${translations[currentLang].placeholder}</div>`;
-        return;
-    }
+    // Пераклад статычных элементаў
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.textContent = t(key);
+    });
+    
+    // Плэйсхолдэры input
+    document.querySelectorAll('input[placeholder]').forEach(el => {
+        // Тут можна дадаць логіку, калі трэба перакладаць і placeholders
+    });
+}
 
-    if (isAdmin) {
-        const globalSaveBtn = document.createElement('button');
-        globalSaveBtn.className = 'login-btn global-save-btn';
-        globalSaveBtn.style.marginBottom = '20px';
-        globalSaveBtn.style.backgroundColor = '#8e44ad';
-        globalSaveBtn.textContent = translations[currentLang].btnSave;
-        globalSaveBtn.onclick = saveToGithub;
-        container.appendChild(globalSaveBtn);
-    }
+// == РЭНДЭРЫНГ (Галоўная логіка) ==
+function renderSchedule(group) {
+    const container = document.getElementById('scheduleContainer');
+    container.innerHTML = '';
 
-    const daysOrder = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+    const data = scheduleData[group] || {}; // Дадзеныя групы ці пуста
+
+    // Кнопка захавання для адміна
+    if (state.isAdmin) {
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'global-save-btn';
+        saveBtn.textContent = t('btnSaveGlobal');
+        saveBtn.onclick = saveToGithub;
+        container.appendChild(saveBtn);
+    }
 
     daysOrder.forEach(dayKey => {
-        if (!data[dayKey]) return;
-        const daySchedule = data[dayKey];
-        
         const dayBlock = document.createElement('div');
         dayBlock.className = 'schedule-day';
 
         const dayTitle = document.createElement('div');
         dayTitle.className = 'day-title';
-        dayTitle.textContent = translations[currentLang].days[dayKey] || dayKey;
+        dayTitle.textContent = t('days')[dayKey] || dayKey;
         dayBlock.appendChild(dayTitle);
 
-        const tableWrapper = document.createElement('div');
-        tableWrapper.className = 'table-wrapper';
         const table = document.createElement('table');
-        
-        daySchedule.forEach((lesson, index) => {
+        const dayLessons = data[dayKey] || [];
+
+        // Ітэрацыя па ФІКСАВАНЫХ СЛОТАХ, а не па існуючых парах
+        TIME_SLOTS.forEach((timeSlot) => {
             const row = document.createElement('tr');
             
-            const timeCell = document.createElement('td');
-            timeCell.style.width = "15%";
-            timeCell.innerHTML = `<strong>${lesson.time}</strong>`;
-            
-            const infoCell = document.createElement('td');
-            infoCell.id = `cell-${group}-${dayKey}-${index}`;
+            // 1. Час
+            const timeCol = document.createElement('td');
+            timeCol.className = 'time-col';
+            timeCol.textContent = timeSlot;
+            row.appendChild(timeCol);
 
-            if (lesson.multi) {
-                lesson.content.forEach((item, subIndex) => {
-                    const div = document.createElement('div');
-                    div.className = 'week-split';
-                    div.innerHTML = generateLessonHTML(item, true);
-                    if (isAdmin) div.appendChild(createAdminControls(group, dayKey, index, subIndex));
-                    infoCell.appendChild(div);
-                });
+            // 2. Пошук пары ў JSON для гэтага часу
+            // Шукаем, ці ёсць у масіве data[dayKey] аб'ект з time === timeSlot
+            const lessonIndex = dayLessons.findIndex(l => l.time === timeSlot);
+            const lesson = dayLessons[lessonIndex];
+
+            const infoCol = document.createElement('td');
+
+            if (lesson) {
+                // ПАРА ЁСЦЬ
+                if (lesson.multi) {
+                    // Мульці-пара (падгрупы ці тыдні)
+                    lesson.content.forEach((subItem, subIdx) => {
+                        const div = document.createElement('div');
+                        div.className = 'week-split';
+                        div.innerHTML = generateLessonHTML(subItem);
+                        if (state.isAdmin) {
+                            div.appendChild(createAdminControls(group, dayKey, lessonIndex, subIdx));
+                        }
+                        infoCol.appendChild(div);
+                    });
+                } else {
+                    // Звычайная пара
+                    infoCol.innerHTML = generateLessonHTML(lesson);
+                    if (state.isAdmin) {
+                        infoCol.appendChild(createAdminControls(group, dayKey, lessonIndex, null));
+                    }
+                }
             } else {
-                infoCell.innerHTML = generateLessonHTML(lesson, false);
-                if (isAdmin) infoCell.appendChild(createAdminControls(group, dayKey, index, null));
+                // ПАРЫ НЯМА (ПУСТЫ СЛОТ)
+                infoCol.className = 'empty-slot';
+                infoCol.textContent = state.isAdmin ? "" : t('emptySlot');
+                
+                if (state.isAdmin) {
+                    const addBtn = document.createElement('button');
+                    addBtn.className = 'btn-add';
+                    addBtn.textContent = t('btnAdd');
+                    addBtn.onclick = () => addNewLesson(group, dayKey, timeSlot);
+                    infoCol.appendChild(addBtn);
+                }
             }
 
-            row.appendChild(timeCell);
-            row.appendChild(infoCell);
+            row.appendChild(infoCol);
             table.appendChild(row);
         });
 
-        tableWrapper.appendChild(table);
-        dayBlock.appendChild(tableWrapper);
+        dayBlock.appendChild(table);
         container.appendChild(dayBlock);
     });
 }
 
-function generateLessonHTML(item, showWeeks) {
+function generateLessonHTML(item) {
     let weekText = '';
-    if (item.weeks || showWeeks) {
-        const w = item.weeks || '';
-        const weekClass = (w.includes('1')) ? 'week-odd' : 'week-even';
-        const weekLabel = currentLang === 'be' ? 'тыд.' : 'нед.';
-        if(w) weekText = `<span class="week-badge ${weekClass}">${w} ${weekLabel}</span>`;
+    if (item.weeks) {
+        const w = item.weeks;
+        const weekClass = w.includes('1') ? 'week-odd' : 'week-even';
+        weekText = `<span class="week-badge ${weekClass}">${t('lblWeeks')} ${w}</span>`;
     }
     return `
         ${weekText}
         <span class="subject">${item.subject}</span>
-        <div class="details">${item.teacher || ''}</div>
-        <div class="location">Ауд. ${item.room || '-'}</div>
+        <div class="details">${t('lblTeach')}: ${item.teacher || '-'}</div>
+        <div class="location">${t('lblRoom')}: ${item.room || '-'}</div>
     `;
 }
 
-function createAdminControls(group, day, index, subIndex) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'admin-controls';
+// == АДМІН: КІРАВАННЕ ==
+function createAdminControls(group, dayKey, index, subIndex) {
+    const div = document.createElement('div');
+    div.className = 'admin-controls';
     
     const btnEdit = document.createElement('button');
     btnEdit.className = 'btn-edit';
-    btnEdit.textContent = "✎";
-    btnEdit.onclick = () => enableEditMode(group, day, index, subIndex);
-
+    btnEdit.textContent = t('btnEdit');
+    btnEdit.onclick = () => editLesson(group, dayKey, index, subIndex);
+    
     const btnDel = document.createElement('button');
     btnDel.className = 'btn-delete';
-    btnDel.textContent = "✖";
-    btnDel.onclick = () => deleteLesson(group, day, index, subIndex);
-
-    wrapper.appendChild(btnEdit);
-    wrapper.appendChild(btnDel);
-    return wrapper;
+    btnDel.textContent = t('btnDelete');
+    btnDel.onclick = () => deleteLesson(group, dayKey, index, subIndex);
+    
+    div.appendChild(btnEdit);
+    div.appendChild(btnDel);
+    return div;
 }
 
-function deleteLesson(group, day, index, subIndex) {
-    if(!confirm("Выдаліць пару?")) return;
+// ДАДАННЕ НОВАЙ ПАРЫ
+function addNewLesson(group, dayKey, timeSlot) {
+    if (!scheduleData[group]) scheduleData[group] = {};
+    if (!scheduleData[group][dayKey]) scheduleData[group][dayKey] = [];
+
+    // Ствараем пусты аб'ект
+    const newLesson = {
+        time: timeSlot,
+        subject: "Новый предмет",
+        teacher: "",
+        room: "",
+        weeks: ""
+    };
+    
+    scheduleData[group][dayKey].push(newLesson);
+    // Адразу адкрываем рэдагаванне, бо пара "Новая"
+    const newIndex = scheduleData[group][dayKey].length - 1;
+    renderSchedule(group); // Спачатку малюем, каб з'явіўся DOM
+    // Можна адразу трыгернуць editLesson, але для прастаты пакуль проста рэндэр
+}
+
+// ВЫДАЛЕННЕ (АЧЫСТКА)
+function deleteLesson(group, dayKey, index, subIndex) {
+    if (!confirm(t('confirmDelete'))) return;
+
     if (subIndex !== null) {
-        scheduleData[group][day][index].content.splice(subIndex, 1);
-        if(scheduleData[group][day][index].content.length === 0) scheduleData[group][day].splice(index, 1);
+        // Выдаляем падгрупу
+        const parent = scheduleData[group][dayKey][index];
+        parent.content.splice(subIndex, 1);
+        // Калі ў multi нічога не засталося, выдаляем увесь бацькоўскі элемент
+        if (parent.content.length === 0) {
+            scheduleData[group][dayKey].splice(index, 1);
+        }
     } else {
-        scheduleData[group][day].splice(index, 1);
+        // Выдаляем аб'ект з масіва -> Слот стане пустым пры наступным рэндэры
+        scheduleData[group][dayKey].splice(index, 1);
     }
     renderSchedule(group);
 }
 
-function enableEditMode(group, day, index, subIndex) {
-    let targetObj;
-    let containerEl;
-
+// РЭДАГАВАННЕ
+function editLesson(group, dayKey, index, subIndex) {
+    // Лагічны пошук аб'екта
+    let targetLesson;
     if (subIndex !== null) {
-        targetObj = scheduleData[group][day][index].content[subIndex];
-        const td = document.getElementById(`cell-${group}-${day}-${index}`);
-        containerEl = td.getElementsByClassName('week-split')[subIndex];
+        targetLesson = scheduleData[group][dayKey][index].content[subIndex];
     } else {
-        targetObj = scheduleData[group][day][index];
-        containerEl = document.getElementById(`cell-${group}-${day}-${index}`);
+        targetLesson = scheduleData[group][dayKey][index];
     }
 
-    containerEl.innerHTML = `
-        <div style="background:#f9f9f9; padding:5px; border:1px solid #ccc;">
-            <input type="text" class="edit-input inp-weeks" value="${targetObj.weeks || ''}" placeholder="Тыдні (1,3)">
-            <input type="text" class="edit-input inp-subj" value="${targetObj.subject || ''}" placeholder="Прадмет">
-            <input type="text" class="edit-input inp-teacher" value="${targetObj.teacher || ''}" placeholder="Выкладчык">
-            <input type="text" class="edit-input inp-room" value="${targetObj.room || ''}" placeholder="Аўдыторыя">
+    // Шукаем DOM элемент. Цяжэй, бо мы перайшлі на Time Slots, а не індэксы
+    // Але мы ведаем час targetLesson.time.
+    // Аднак прасцей перамаляваць канкрэтную ячэйку, але для стабільнасці
+    // мы проста знойдзем патрэбны div праз querySelector па тэксце ці пераробім renderSchedule,
+    // але прасцей проста зрабіць "Modal Edit" ці "Inline Replace".
+    // Зробім Inline Replace, але трэба знайсці бацьку кнопкі.
+    
+    // Хакаваты спосаб: Event target, але мы яго не перадалі.
+    // Таму давайце проста перамалюем усё акно ў рэжым рэдагавання? Не, гэта доўга.
+    // Давайце выкарыстоўваць event.target, які перададзім пры кліку.
+    // Але ў createAdminControls onclick - гэта стрэлачная функцыя.
+    // ПЕРАПІШАМ createAdminControls каб атрымаць доступ да event.
+    
+    // Прасцей: ператварыць увесь расклад у "Edit Form"? Не.
+    
+    // РАШЭННЕ: Мы проста адкрыем prompt (дрэнна) ці заменім усё праз пошук.
+    // Давайце зробім прыгожа: знойдзем бацькоўскі кантэйнер праз DOM (гэта не вельмі чыста, але працуе).
+    // Але ў нас няма доступу да `this`.
+    
+    // Вернемся да варыянту з мінулага кода: мы ведаем `index`. Але гэта індэкс у МАСІВЕ JSON.
+    // А ў табліцы радкі ідуць па TIME_SLOTS.
+    // Таму мы не можам проста ўзяць `tr[index]`.
+    
+    // Актуальны падыход: Prompt для прастаты кода (каб не раздзімаць файл), 
+    // АБО перамаляваць гэты канкрэтны блок на форму.
+    // Давайце перамалюем усю табліцу, але пазначым, што гэты элемент у рэжыме рэдагавання.
+    
+    // Дадаем у state: editing: { group, day, index, subIndex }
+    state.editing = { group, dayKey, index, subIndex };
+    renderEditForm(targetLesson);
+}
+
+function renderEditForm(targetLesson) {
+    // Мы не будзем шукаць элемент у DOM. Мы проста выклічам мадалку? 
+    // Не, карыстальнік прасіў "як было".
+    // Добра, давайце проста выкарыстаем `window.event.target` (гэта працуе ў Chrome/FF).
+    
+    const btn = window.event.target;
+    const container = btn.closest('td') || btn.closest('.week-split');
+    
+    // Захоўваем HTML
+    const originalHTML = container.innerHTML;
+    
+    container.innerHTML = `
+        <div style="background:#fff; border:1px solid #aaa; padding:5px;">
+            <label>${t('lblWeeks')}</label>
+            <input class="edit-input inp-weeks" value="${targetLesson.weeks || ''}">
+            <label>${t('lblSubj')}</label>
+            <input class="edit-input inp-subj" value="${targetLesson.subject || ''}">
+            <label>${t('lblTeach')}</label>
+            <input class="edit-input inp-teach" value="${targetLesson.teacher || ''}">
+            <label>${t('lblRoom')}</label>
+            <input class="edit-input inp-room" value="${targetLesson.room || ''}">
             <div class="admin-controls">
-                <button class="btn-save" style="background:green">OK</button>
-                <button class="btn-cancel" style="background:gray">Cancel</button>
+                <button class="btn-save">${t('btnOk')}</button>
+                <button class="btn-cancel">${t('btnCancel')}</button>
             </div>
         </div>
     `;
-
-    const btnSave = containerEl.querySelector('.btn-save');
-    const btnCancel = containerEl.querySelector('.btn-cancel');
-
+    
+    const btnSave = container.querySelector('.btn-save');
+    const btnCancel = container.querySelector('.btn-cancel');
+    
     btnSave.onclick = () => {
-        targetObj.weeks = containerEl.querySelector('.inp-weeks').value;
-        targetObj.subject = containerEl.querySelector('.inp-subj').value;
-        targetObj.teacher = containerEl.querySelector('.inp-teacher').value;
-        targetObj.room = containerEl.querySelector('.inp-room').value;
-        renderSchedule(group);
+        targetLesson.weeks = container.querySelector('.inp-weeks').value;
+        targetLesson.subject = container.querySelector('.inp-subj').value;
+        targetLesson.teacher = container.querySelector('.inp-teach').value;
+        targetLesson.room = container.querySelector('.inp-room').value;
+        renderSchedule(state.group); // Абнавіць выгляд
     };
-    btnCancel.onclick = () => renderSchedule(group);
+    
+    btnCancel.onclick = () => {
+        container.innerHTML = originalHTML;
+        // Трэба аднавіць слухачы падзей (якія згубіліся пры innerHTML replace), 
+        // таму прасцей перарэндэрыць усё
+        renderSchedule(state.group);
+    };
 }
 
-// == АЎТАРЫЗАЦЫЯ І ХЭШАВАННЕ ==
 
-const logoImg = document.getElementById('secretLogo');
+// == API GITHUB ==
+async function saveToGithub() {
+    if (!state.token) return alert(t('errorAccess'));
+    
+    const btn = document.querySelector('.global-save-btn');
+    if(btn) btn.textContent = t('saving');
+
+    try {
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        
+        const getRes = await fetch(apiUrl, { headers: { "Authorization": `token ${state.token}` }});
+        if (!getRes.ok) throw new Error("API Error");
+        const fileSha = (await getRes.json()).sha;
+
+        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(scheduleData, null, 2))));
+
+        const putRes = await fetch(apiUrl, {
+            method: "PUT",
+            headers: { 
+                "Authorization": `token ${state.token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: "Update schedule",
+                content: contentBase64,
+                sha: fileSha
+            })
+        });
+
+        if (!putRes.ok) throw new Error("Put Error");
+        alert(t('successSave'));
+    } catch (e) {
+        alert(t('errorSave') + e.message);
+    } finally {
+        if(btn) btn.textContent = t('btnSaveGlobal');
+    }
+}
+
+// == АЎТАРЫЗАЦЫЯ І HASH ==
+async function sha256(str) {
+    const buf = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// Лагін
 const loginModal = document.getElementById('adminModal');
 const logoutModal = document.getElementById('logoutModal');
-const loginForm = document.getElementById('loginForm');
-const msgBox = document.getElementById('loginMessage');
-const logoutBtn = document.getElementById('logoutBtn');
+const logo = document.getElementById('secretLogo');
+let clicks = 0, timer;
 
-let clickCount = 0;
-let clickTimer = null;
-
-if(logoImg) {
-    logoImg.addEventListener('click', () => {
-        clickCount++;
-        clearTimeout(clickTimer);
-        clickTimer = setTimeout(() => { clickCount = 0; }, 400);
-
-        if (clickCount >= 10) {
-            clickCount = 0;
-            if (isAdmin) logoutModal.classList.remove('hidden');
-            else {
-                loginModal.classList.remove('hidden');
-                msgBox.textContent = "";
-                document.getElementById('apiTokenInput').value = "";
-            }
-        }
-    });
-}
-
-document.getElementById('closeLoginModal').addEventListener('click', () => loginModal.classList.add('hidden'));
-document.getElementById('closeLogoutModal').addEventListener('click', () => logoutModal.classList.add('hidden'));
-
-// Функцыя SHA-256
-async function sha256(message) {
-    const msgBuffer = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Апрацоўка УВАХОДУ
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const tokenInput = document.getElementById('apiTokenInput').value.trim();
-    
-    // Вылічваем хэш ад уведзенага токена
-    const calculatedHash = await sha256(SALT + tokenInput);
-    
-    // Звяраем з захаваным хэшам
-    if (calculatedHash === TARGET_HASH) {
-        msgBox.textContent = "Успех! (Доступ дазволены)";
-        msgBox.style.color = "#2ecc71";
-        
-        // Калі супала, захоўваем АРЫГІНАЛЬНЫ токен (ён патрэбен для API)
-        localStorage.setItem('bsac_gh_token', tokenInput);
-        
-        setTimeout(() => {
-            loginModal.classList.add('hidden');
-            location.reload();
-        }, 500);
-    } else {
-        msgBox.textContent = "Няправільны токен";
-        msgBox.style.color = "#e74c3c";
+logo.addEventListener('click', () => {
+    clicks++;
+    clearTimeout(timer);
+    timer = setTimeout(() => clicks=0, 400);
+    if (clicks >= 10) {
+        clicks = 0;
+        if (state.isAdmin) logoutModal.classList.remove('hidden');
+        else loginModal.classList.remove('hidden');
     }
 });
 
-// Апрацоўка ВЫХАДУ
-logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('bsac_gh_token');
-    location.reload();
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = document.getElementById('apiTokenInput').value.trim();
+    const hash = await sha256(SALT + token);
+    
+    if (hash === TARGET_HASH) {
+        state.isAdmin = true;
+        state.token = token;
+        localStorage.setItem('bsac_gh_token', token);
+        document.getElementById('adminBadge').classList.remove('hidden');
+        loginModal.classList.add('hidden');
+        alert(t('successAccess'));
+        renderSchedule(state.group);
+    } else {
+        alert(t('errorAccess'));
+    }
 });
 
-// == КАМАНДА ДЛЯ ГЕНЕРАЦЫІ ВАШАГА ХЭША ==
-// Выклікаць у кансолі браўзера: await generateHash("ghp_MyRealToken...")
-window.generateHash = async (token) => {
-    const h = await sha256(SALT + token);
-    console.log(`%cВаш хэш для ўстаўкі ў код:`, 'color: orange; font-weight: bold;');
-    console.log(h);
-    return h;
-};
+document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('bsac_gh_token');
+    state.isAdmin = false;
+    state.token = '';
+    document.getElementById('adminBadge').classList.add('hidden');
+    logoutModal.classList.add('hidden');
+    renderSchedule(state.group);
+});
+
+// Закрыццё крэсцікам
+document.querySelectorAll('.close-btn').forEach(btn => {
+    btn.onclick = function() { this.closest('.modal').classList.add('hidden'); }
+});
 
 // Запуск
 initApp();
+
+// Хэлпер для генерацыі
+window.generateHash = async (t) => console.log(await sha256(SALT + t));
