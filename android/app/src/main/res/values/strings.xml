@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BSAC Расклад</string>
+    <string name="title_activity_main">BSAC Расклад</string>
+    <string name="package_name">by.bsac.schedule</string>
+    <string name="custom_url_scheme">by.bsac.schedule</string>
+</resources>
