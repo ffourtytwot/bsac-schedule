@@ -1,5 +1,12 @@
 {
-  "appId": "by.bsac.schedule",
+  "appId": "edu.bsac.schedule",
   "appName": "BSAC Расклад",
-  "webDir": "www"
+  "webDir": "www",
+  "server": {
+    "url": "https://ffourtytwot.github.io/bsac-schedule/", 
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
 }
