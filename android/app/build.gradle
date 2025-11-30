@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "by.bsac.schedule"
+    namespace "edu.bsac.schedule"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "by.bsac.schedule"
+        applicationId "edu.bsac.schedule"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

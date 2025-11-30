@@ -1,0 +1,97 @@
+name: Notify Schedule Changes
+
+on:
+  push:
+    paths:
+      - 'www/schedule.json' # Сачыць за файлам раскладу
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Каб мець доступ да мінулага каміту
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Firebase Admin SDK
+        run: npm install firebase-admin
+
+      - name: Detect Changes and Send Notification
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          node <<EOF
+          const fs = require('fs');
+          const { execSync } = require('child_process');
+          const admin = require('firebase-admin');
+
+          // 1. Чытаем новы расклад
+          const newSchedule = JSON.parse(fs.readFileSync('www/schedule.json', 'utf8'));
+
+          // 2. Чытаем стары расклад (праз git)
+          let oldSchedule = {};
+          try {
+            const oldContent = execSync('git show HEAD~1:www/schedule.json').toString();
+            oldSchedule = JSON.parse(oldContent);
+          } catch (e) {
+            console.log("No previous version found or error reading it.");
+          }
+
+          // 3. Шукаем змены
+          const changedGroups = [];
+          
+          for (const group in newSchedule) {
+            const newStr = JSON.stringify(newSchedule[group]);
+            const oldStr = oldSchedule[group] ? JSON.stringify(oldSchedule[group]) : "";
+            
+            if (newStr !== oldStr) {
+              changedGroups.push(group);
+            }
+          }
+
+          if (changedGroups.length === 0) {
+            console.log("No content changes detected.");
+            process.exit(0);
+          }
+
+          const messageBody = "Змены ў групах: " + changedGroups.join(", ");
+          console.log("Sending notification:", messageBody);
+
+          // 4. Адпраўляем у Firebase
+          // Ініцыялізацыя
+          const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+          
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+          });
+
+          const message = {
+            topic: 'all', // Шлем усім, хто падпісаўся на "all"
+            notification: {
+              title: '📅 Расклад абноўлены!',
+              body: messageBody
+            },
+            android: {
+              priority: 'high',
+              notification: {
+                sound: 'default'
+              }
+            }
+          };
+
+          admin.messaging().send(message)
+            .then((response) => {
+              console.log('Successfully sent message:', response);
+              process.exit(0);
+            })
+            .catch((error) => {
+              console.log('Error sending message:', error);
+              process.exit(1);
+            });
+          EOF

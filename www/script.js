@@ -1,16 +1,23 @@
-// == НАЛАДЫ ==
-const REPO_OWNER = "ffourtytwot";       
-const REPO_NAME = "bsac-schedule";     
+// script.js
+
+// == 1. НАЛАДЫ ==
+const REPO_OWNER = "ffourtytwot";
+const REPO_NAME = "bsac-schedule";
 const FILE_PATH = "schedule.json"; 
 const SALT = "bsac_super_salt_2025"; 
 const TARGET_HASH = "38bff4d29d08888d2f3c8e0250551c3d7662bcc2cd1490048dc22a89502afc41"; 
+
+// Спасылка для ЧЫТАННЯ (Raw)
+const RAW_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${FILE_PATH}`;
+// Спасылка для ЗАПІСУ (API)
+const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
 
 const TIME_SLOTS = [
     "08:00-09:40", "09:55-11:35", "12:15-13:55",
     "14:10-15:50", "16:20-18:00", "18:15-19:55"
 ];
 
-// == ЛАКАЛІЗАЦЫЯ ==
+// == 2. ЛАКАЛІЗАЦЫЯ ==
 const translations = {
     ru: {
         title: "Расписание БГАС 1 Курс",
@@ -110,44 +117,60 @@ let state = {
 let scheduleData = {};
 const daysOrder = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
 
-// == 1. ІНІЦЫЯЛІЗАЦЫЯ І КЭШ ==
+// == 3. ІНІЦЫЯЛІЗАЦЫЯ ==
 async function initApp() {
+    // Чытаем налады
     const cachedSettings = localStorage.getItem('bsac_settings');
     if (cachedSettings) {
-        const parsed = JSON.parse(cachedSettings);
-        state.lang = parsed.lang || 'ru';
-        state.theme = parsed.theme || 'light';
-        state.group = parsed.group || '';
-        state.subgroup = parsed.subgroup || '0';
+        try {
+            const parsed = JSON.parse(cachedSettings);
+            state.lang = parsed.lang || 'ru';
+            state.theme = parsed.theme || 'light';
+            state.group = parsed.group || '';
+            state.subgroup = parsed.subgroup || '0';
+        } catch (e) { console.error("Error parsing settings", e); }
     }
 
+    // Чытаем токен
     const savedToken = localStorage.getItem('bsac_gh_token');
     if (savedToken) {
         const checkHash = await sha256(SALT + savedToken);
         if (checkHash === TARGET_HASH) {
             state.isAdmin = true;
             state.token = savedToken;
-            document.getElementById('adminBadge').classList.toggle('hidden');
+            const badge = document.getElementById('adminBadge');
+            if(badge) badge.classList.remove('hidden');
         }
     }
 
+    // Ужываем UI
     applyTheme();
     applyLang();
-    document.getElementById('groupSelect').value = state.group;
-    document.getElementById('subgroupSelect').value = state.subgroup;
+    const grpSelect = document.getElementById('groupSelect');
+    if(grpSelect) grpSelect.value = state.group;
+    
+    const subSelect = document.getElementById('subgroupSelect');
+    if(subSelect) subSelect.value = state.subgroup;
 
+    // Ініцыялізацыя Push-апавяшчэнняў (калі гэта мабільнае прыкладанне)
+    initPushNotifications();
+
+    // Загрузка дадзеных
     const offlineBadge = document.getElementById('offlineBadge');
+    const placeholder = document.getElementById('uiPlaceholder');
     
     try {
-        const response = await fetch(`${FILE_PATH}?t=${new Date().getTime()}`);
+        const response = await fetch(`${RAW_URL}?t=${new Date().getTime()}`);
         if (!response.ok) throw new Error("HTTP " + response.status);
         
         scheduleData = await response.json();
+        
+        // Поспех -> у кэш
         localStorage.setItem('bsac_cached_schedule', JSON.stringify(scheduleData));
         if(offlineBadge) offlineBadge.classList.add('hidden');
         
     } catch (e) {
-        console.warn("Offline:", e);
+        console.warn("Offline mode active:", e);
         const cachedData = localStorage.getItem('bsac_cached_schedule');
         if (cachedData) {
             scheduleData = JSON.parse(cachedData);
@@ -156,7 +179,7 @@ async function initApp() {
                 offlineBadge.textContent = t('offlineMode');
             }
         } else {
-            document.getElementById('uiPlaceholder').textContent = t('errorLoad');
+            if(placeholder) placeholder.textContent = t('errorLoad');
             return;
         }
     }
@@ -164,6 +187,47 @@ async function initApp() {
     if (state.group) renderSchedule(state.group);
 }
 
+// == 4. PUSH NOTIFICATIONS (Capacitor) ==
+async function initPushNotifications() {
+    // Працуем толькі калі ёсць Capacitor і Android
+    // @ts-ignore
+    if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+        const { PushNotifications } = Capacitor.Plugins;
+        // Для падпіскі на тэму патрэбен альбо @capacitor-community/fcm, альбо кастомная логіка
+        // Мы мяркуем, што плагін усталяваны
+        const FCM = Capacitor.Plugins.FCM; 
+
+        try {
+            let perm = await PushNotifications.checkPermissions();
+            if (perm.receive === 'prompt') {
+                perm = await PushNotifications.requestPermissions();
+            }
+            if (perm.receive !== 'granted') return;
+
+            await PushNotifications.register();
+
+            // Падпіска на тэму "all" для масавых рассылак
+            if (FCM) {
+                await FCM.subscribeTo({ topic: "all" })
+                    .then(() => console.log("Subscribed to topic 'all'"))
+                    .catch((err) => console.log("Error subscribing to topic", err));
+            }
+
+            // Пры атрыманні паведамлення ў дадатку
+            PushNotifications.addListener('pushNotificationReceived', (notification) => {
+                console.log('Push received:', notification);
+                // Аўтаматычна абнаўляем расклад, калі прыйшоў пуш
+                initApp(); 
+                alert(notification.title + "\n" + notification.body);
+            });
+
+        } catch (e) {
+            console.error("Push init error:", e);
+        }
+    }
+}
+
+// == 5. UI EVENT HANDLERS ==
 function saveSettings() {
     localStorage.setItem('bsac_settings', JSON.stringify({
         lang: state.lang,
@@ -177,32 +241,31 @@ function t(key) {
     return translations[state.lang][key] || key;
 }
 
-// == UI ==
 const themeBtn = document.getElementById('themeBtn');
 const langBtn = document.getElementById('langBtn');
 const groupSelect = document.getElementById('groupSelect');
 const subgroupSelect = document.getElementById('subgroupSelect');
 
-themeBtn.addEventListener('click', () => {
+if (themeBtn) themeBtn.addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     applyTheme();
     saveSettings();
 });
 
-langBtn.addEventListener('click', () => {
+if (langBtn) langBtn.addEventListener('click', () => {
     state.lang = state.lang === 'ru' ? 'be' : 'ru';
     applyLang();
     if(state.group) renderSchedule(state.group);
     saveSettings();
 });
 
-groupSelect.addEventListener('change', (e) => {
+if (groupSelect) groupSelect.addEventListener('change', (e) => {
     state.group = e.target.value;
     renderSchedule(state.group);
     saveSettings();
 });
 
-subgroupSelect.addEventListener('change', (e) => {
+if (subgroupSelect) subgroupSelect.addEventListener('change', (e) => {
     state.subgroup = e.target.value;
     renderSchedule(state.group);
     saveSettings();
@@ -210,26 +273,31 @@ subgroupSelect.addEventListener('change', (e) => {
 
 function applyTheme() {
     document.body.className = state.theme === 'dark' ? 'dark-theme' : '';
-    themeBtn.textContent = t(state.theme === 'light' ? 'themeLight' : 'themeDark');
+    if(themeBtn) themeBtn.textContent = t(state.theme === 'light' ? 'themeLight' : 'themeDark');
 }
 
 function applyLang() {
-    langBtn.textContent = state.lang.toUpperCase();
+    if(langBtn) langBtn.textContent = state.lang.toUpperCase();
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         el.textContent = t(key);
     });
 }
 
-// == РЭНДЭРЫНГ ==
+// == 6. РЭНДЭРЫНГ РАСКЛАДУ ==
 function renderSchedule(group) {
     const container = document.getElementById('scheduleContainer');
     const offlineNode = document.getElementById('offlineBadge');
     container.innerHTML = '';
-    if(offlineNode) container.appendChild(offlineNode);
+    
+    // Калі мы афлайн, вяртаем бэйдж
+    if(offlineNode && !offlineNode.classList.contains('hidden')) {
+        container.appendChild(offlineNode);
+    }
 
     const data = scheduleData[group] || {}; 
 
+    // Кнопка захавання для адміна
     if (state.isAdmin) {
         const saveBtn = document.createElement('button');
         saveBtn.className = 'global-save-btn';
@@ -240,6 +308,7 @@ function renderSchedule(group) {
 
     daysOrder.forEach(dayKey => {
         const dayLessons = data[dayKey] || [];
+        
         const dayBlock = document.createElement('div');
         dayBlock.className = 'schedule-day';
 
@@ -261,7 +330,7 @@ function renderSchedule(group) {
 
             const infoCol = document.createElement('td');
             
-            // Атрымліваем пары на гэты час
+            // Фільтрацыя пар
             const slotLessons = dayLessons.map((l, index) => ({...l, realIndex: index}))
                                           .filter(l => l.time === timeSlot);
 
@@ -272,11 +341,13 @@ function renderSchedule(group) {
             let countSg1 = 0;
             let countSg2 = 0;
 
-            // 1. АДЛЮСТРАВАННЕ ЗАНЯТКАЎ
+            // -- Адлюстраванне --
             if (commonLesson) {
+                // Агульная пара
                 renderSingleLessonBlock(infoCol, commonLesson, group, dayKey, commonLesson.realIndex);
                 hasContent = true;
             } else {
+                // Падгрупы
                 const sg1Lessons = slotLessons.filter(l => parseInt(l.num_subgroup) === 1);
                 const sg2Lessons = slotLessons.filter(l => parseInt(l.num_subgroup) === 2);
                 
@@ -301,23 +372,21 @@ function renderSchedule(group) {
                 }
             }
 
-            // 2. КНОПКА ДАДАННЯ (ТОЛЬКІ ДЛЯ АДМІНА)
-            // Умова: калі няма агульнай пары, і хоць адна з падгруп свабодная
-            // А таксама калі карыстальнік выбраў пэўную падгрупу, і яна пустая
+            // -- Кнопка Дадаць (Толькі Адмін) --
             if (state.isAdmin) {
                 let needAddButton = false;
-
+                
+                // Калі ёсць агульная пара - дадаваць няма куды (яна займае ўвесь слот)
                 if (!commonLesson) {
-                    // Калі мы глядзім "Усе"
+                    // Калі рэжым "Усе": калі хоць адна з падгруп пустая -> даем кнопку
                     if (currentSg === 0) {
-                        // Калі свабодна ў 1-й АБО ў 2-й - даем магчымасць дадаць
                         if (countSg1 === 0 || countSg2 === 0) needAddButton = true;
                     } 
-                    // Калі мы глядзім "п/г 1"
+                    // Калі рэжым "П/г 1" і яна пустая
                     else if (currentSg === 1 && countSg1 === 0) {
                         needAddButton = true;
                     }
-                    // Калі мы глядзім "п/г 2"
+                    // Калі рэжым "П/г 2" і яна пустая
                     else if (currentSg === 2 && countSg2 === 0) {
                         needAddButton = true;
                     }
@@ -325,12 +394,13 @@ function renderSchedule(group) {
 
                 if (needAddButton) {
                     renderGenericAddButton(infoCol, group, dayKey, timeSlot);
-                    // Калі мы дадаем кнопку, значыць радок павінен быць бачны
+                    // Калі дадаем кнопку, значыць радок павінен быць бачны
                     hasContent = true; 
                 }
             }
 
-            // 3. ВЫРАШАЕМ, ЦІ ПАКАЗВАЦЬ РАДОК
+            // Вырашаем, ці паказваць радок
+            // (Юзер бачыць толькі запоўненыя, Адмін бачыць запоўненыя + кнопкі)
             if (hasContent) {
                 row.appendChild(infoCol);
                 table.appendChild(row);
@@ -338,7 +408,7 @@ function renderSchedule(group) {
             }
         });
 
-        // Калі дзень пусты
+        // Калі ўвесь дзень пусты
         if (visibleRowsCount === 0) {
             const emptyRow = document.createElement('tr');
             const emptyCell = document.createElement('td');
@@ -357,7 +427,9 @@ function renderSchedule(group) {
     });
 }
 
-// Агульная кнопка "Дадаць"
+// == 7. ДАПАМОЖНЫЯ ФУНКЦЫІ РЭНДЭРЫНГУ ==
+
+// Кнопка "Дадаць" (Адна на ўвесь слот)
 function renderGenericAddButton(container, group, dayKey, timeSlot) {
     const div = document.createElement('div');
     div.className = 'week-split empty-slot';
@@ -365,34 +437,34 @@ function renderGenericAddButton(container, group, dayKey, timeSlot) {
     
     const btn = document.createElement('button');
     btn.className = 'btn-add';
-    btn.textContent = t('btnAdd'); // Проста "Дадаць"
+    btn.textContent = t('btnAdd'); 
     
-    // Пры кліку мы выклікаем smart-функцыю
+    // Разумнае даданне
     btn.onclick = () => addNewLessonSmart(group, dayKey, timeSlot);
     
     div.appendChild(btn);
     container.appendChild(div);
 }
 
-// Разумнае даданне (вызначае свабодную падгрупу)
+// Функцыя, якая сама вырашае, у якую падгрупу дадаць
 function addNewLessonSmart(group, dayKey, timeSlot) {
     if (!scheduleData[group]) scheduleData[group] = {};
     if (!scheduleData[group][dayKey]) scheduleData[group][dayKey] = [];
 
     const existing = scheduleData[group][dayKey].filter(l => l.time === timeSlot);
     
-    // Логіка па змаўчанні
-    let targetSg = 0; // Па змаўчанні агульная
+    // Логіка па змаўчанні: Агульная (0)
+    let targetSg = 0; 
 
-    // Калі ўжо ёсць пара ў п/г 1, новую робім п/г 2
+    // Калі ўжо ёсць пара ў п/г 1 -> новую робім п/г 2
     if (existing.some(l => parseInt(l.num_subgroup) === 1)) {
         targetSg = 2;
     } 
-    // Калі ўжо ёсць пара ў п/г 2, новую робім п/г 1
+    // Калі ўжо ёсць пара ў п/г 2 -> новую робім п/г 1
     else if (existing.some(l => parseInt(l.num_subgroup) === 2)) {
         targetSg = 1;
     }
-    // Калі выбрана канкрэтная падгрупа ў фільтры зверху, выкарыстоўваем яе
+    // Калі выбрана канкрэтная падгрупа ў фільтры, выкарыстоўваем яе
     else if (parseInt(state.subgroup) !== 0) {
         targetSg = parseInt(state.subgroup);
     }
@@ -410,7 +482,7 @@ function addNewLessonSmart(group, dayKey, timeSlot) {
     renderSchedule(group);
 }
 
-
+// Адлюстраванне звычайнай пары
 function renderSingleLessonBlock(container, lesson, group, dayKey, index) {
     if (lesson.multi) {
         lesson.content.forEach((sub, subIdx) => {
@@ -426,6 +498,7 @@ function renderSingleLessonBlock(container, lesson, group, dayKey, index) {
     }
 }
 
+// Адлюстраванне пары ў падгрупе (з каляровай рысачкай)
 function renderLessonAsSplit(container, lesson, group, dayKey, index) {
     const borderStyle = lesson.num_subgroup == 1 ? "4px solid #e67e22" : "4px solid #9b59b6";
     if (lesson.multi) {
@@ -474,7 +547,8 @@ function generateLessonHTML(item) {
     `;
 }
 
-// == КІРАВАННЕ ==
+// == 8. ФУНКЦЫІ АДМІНА (КРМ, ВЫДАЛЕННЕ, ЗАХАВАННЕ) ==
+
 function createAdminControls(group, dayKey, index, subIndex) {
     const div = document.createElement('div');
     div.className = 'admin-controls';
@@ -500,6 +574,7 @@ function deleteLesson(group, dayKey, index, subIndex) {
     if (subIndex !== null) {
         const parent = scheduleData[group][dayKey][index];
         parent.content.splice(subIndex, 1);
+        // Калі ў мульці-пары нічога не засталося, выдаляем і бацьку
         if (parent.content.length === 0) {
             scheduleData[group][dayKey].splice(index, 1);
         }
@@ -509,6 +584,7 @@ function deleteLesson(group, dayKey, index, subIndex) {
     renderSchedule(group);
 }
 
+// Рэдагаванне праз замену HTML (Inline)
 function editLesson(group, dayKey, index, subIndex) {
     let targetLesson;
     if (subIndex !== null) {
@@ -522,6 +598,7 @@ function editLesson(group, dayKey, index, subIndex) {
     
     const currentSg = targetLesson.num_subgroup || 0;
 
+    // Ствараем форму
     container.innerHTML = `
         <div style="background:var(--bg-card); border:1px solid var(--accent-primary); padding:8px; border-radius:6px; z-index:100; position:relative;">
             <div style="display:flex; gap:5px; margin-bottom:5px;">
@@ -530,7 +607,7 @@ function editLesson(group, dayKey, index, subIndex) {
                     <input class="edit-input inp-weeks" value="${targetLesson.weeks || ''}" placeholder="1,3">
                 </div>
                 <div style="width:60px;">
-                    <label style="font-size:0.7em;">${t('lblSgShort')}</label>
+                    <label style="font-size:0.7em;">${t('lblSubj')}</label>
                     <select class="edit-input inp-sg">
                         <option value="0" ${currentSg==0?'selected':''}>All</option>
                         <option value="1" ${currentSg==1?'selected':''}>1</option>
@@ -580,26 +657,35 @@ function editLesson(group, dayKey, index, subIndex) {
     };
 }
 
-// == GITHUB API ==
+// Захаванне на GitHub
 async function saveToGithub() {
     if (!state.token) return alert(t('errorAccess'));
     const btn = document.querySelector('.global-save-btn');
     if(btn) btn.textContent = t('saving');
 
     try {
-        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-        const getRes = await fetch(apiUrl, { headers: { "Authorization": `token ${state.token}` }});
-        if (!getRes.ok) throw new Error("API Error");
-        const fileSha = (await getRes.json()).sha;
+        // Спачатку атрымліваем SHA файла
+        const getRes = await fetch(API_URL, { headers: { "Authorization": `token ${state.token}` }});
+        if (!getRes.ok) throw new Error("API Error: Cannot get file SHA");
+        const fileData = await getRes.json();
+        const fileSha = fileData.sha;
+
+        // Кадуем кантэнт у Base64 (выпраўленне праблем з кірыліцай)
         const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(scheduleData, null, 2))));
 
-        const putRes = await fetch(apiUrl, {
+        const putRes = await fetch(API_URL, {
             method: "PUT",
             headers: { "Authorization": `token ${state.token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ message: "Update schedule", content: contentBase64, sha: fileSha })
+            body: JSON.stringify({
+                message: "Update schedule from Admin UI",
+                content: contentBase64,
+                sha: fileSha
+            })
         });
-        if (!putRes.ok) throw new Error("Put Error");
         
+        if (!putRes.ok) throw new Error("Put Error: Cannot save file");
+        
+        // Абнаўляем кэш
         localStorage.setItem('bsac_cached_schedule', JSON.stringify(scheduleData));
         alert(t('successSave'));
     } catch (e) {
@@ -615,33 +701,42 @@ async function sha256(str) {
     return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-// == AUTH ==
+// == 9. АЎТАРЫЗАЦЫЯ (Клікі па лагатыпе) ==
 const loginModal = document.getElementById('adminModal');
 const logoutModal = document.getElementById('logoutModal');
 const logo = document.getElementById('secretLogo');
 let clicks = 0, timer;
 
-logo.addEventListener('click', () => {
+if (logo) logo.addEventListener('click', () => {
     clicks++;
     clearTimeout(timer);
     timer = setTimeout(() => clicks=0, 700);
     if (clicks >= 10) {
         clicks = 0;
-        if (state.isAdmin) logoutModal.classList.remove('hidden');
-        else loginModal.classList.remove('hidden');
+        if (state.isAdmin) {
+            if(logoutModal) logoutModal.classList.remove('hidden');
+        } else {
+            if(loginModal) loginModal.classList.remove('hidden');
+        }
     }
 });
 
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
+const loginForm = document.getElementById('loginForm');
+if (loginForm) loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const token = document.getElementById('apiTokenInput').value.trim();
+    const input = document.getElementById('apiTokenInput');
+    const token = input ? input.value.trim() : "";
     const hash = await sha256(SALT + token);
+    
     if (hash === TARGET_HASH) {
         state.isAdmin = true;
         state.token = token;
         localStorage.setItem('bsac_gh_token', token);
-        document.getElementById('adminBadge').classList.remove('hidden');
-        loginModal.classList.add('hidden');
+        
+        const badge = document.getElementById('adminBadge');
+        if(badge) badge.classList.remove('hidden');
+        
+        if(loginModal) loginModal.classList.add('hidden');
         alert(t('successAccess'));
         renderSchedule(state.group);
     } else {
@@ -649,17 +744,25 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     }
 });
 
-document.getElementById('logoutBtn').addEventListener('click', () => {
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('bsac_gh_token');
     state.isAdmin = false;
     state.token = '';
-    document.getElementById('adminBadge').classList.add('hidden');
-    logoutModal.classList.add('hidden');
+    
+    const badge = document.getElementById('adminBadge');
+    if(badge) badge.classList.add('hidden');
+    
+    if(logoutModal) logoutModal.classList.add('hidden');
     renderSchedule(state.group);
 });
 
 document.querySelectorAll('.close-btn').forEach(btn => {
-    btn.onclick = function() { this.closest('.modal').classList.add('hidden'); }
+    btn.onclick = function() { 
+        const modal = this.closest('.modal');
+        if(modal) modal.classList.add('hidden'); 
+    }
 });
 
+// ЗАПУСК
 initApp();

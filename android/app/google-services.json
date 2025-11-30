@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "937992829672",
+    "project_id": "bsac-schedule-ft",
+    "storage_bucket": "bsac-schedule-ft.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:937992829672:android:087feba164f0e5bb22675d",
+        "android_client_info": {
+          "package_name": "edu.bsac.schedule"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-JSK9q44X3He8-kmoszTX6VwlGpg5_N8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
