@@ -1,7 +1,9 @@
+// script.js
+
 // == НАЛАДЫ ==
-const REPO_OWNER = "ffourtytwot";
+const REPO_OWNER = "ffourtytwot";       
 const REPO_NAME = "bsac-schedule";     
-const FILE_PATH = "https://raw.githubusercontent.com/ffourtytwot/bsac-schedule/main/schedule.json"; 
+const FILE_PATH = "schedule.json"; 
 const SALT = "bsac_super_salt_2025"; 
 const TARGET_HASH = "38bff4d29d08888d2f3c8e0250551c3d7662bcc2cd1490048dc22a89502afc41"; 
 
@@ -10,6 +12,7 @@ const TIME_SLOTS = [
     "14:10-15:50", "16:20-18:00", "18:15-19:55"
 ];
 
+// == ЛАКАЛІЗАЦЫЯ ==
 const translations = {
     ru: {
         title: "Расписание БГАС 1 Курс",
@@ -31,7 +34,7 @@ const translations = {
         errorAccess: "Неверный токен.",
         successSave: "✅ Изменения успешно сохранены на GitHub!",
         errorSave: "❌ Ошибка сохранения: ",
-        confirmDelete: "Очистить этот слот?",
+        confirmDelete: "Удалить эту пару?",
         btnSaveGlobal: "☁️ Сохранить на GitHub",
         saving: "⏳ Сохранение...",
         emptySlot: "Нет занятий",
@@ -48,11 +51,10 @@ const translations = {
             "Понедельник": "Понедельник", "Вторник": "Вторник", "Среда": "Среда", 
             "Четверг": "Четверг", "Пятница": "Пятница", "Суббота": "Суббота" 
         },
-        // НОВАЕ
         lblSubgroup: "Подгруппа:",
         subgroupAll: "Все",
         offlineMode: "⚠️ ОФФЛАЙН РЕЖИМ (Данные из кэша)",
-        lblSgShort: "П/г"
+        lblSgShort: "П/г "
     },
     be: {
         title: "Расклад БДАС 1 Курс",
@@ -74,7 +76,7 @@ const translations = {
         errorAccess: "Няправільны токен.",
         successSave: "✅ Змены паспяхова захаваны на GitHub!",
         errorSave: "❌ Памылка захавання: ",
-        confirmDelete: "Ачысціць гэты слот?",
+        confirmDelete: "Выдаліць гэтую пару?",
         btnSaveGlobal: "☁️ Захаваць на GitHub",
         saving: "⏳ Захаванне...",
         emptySlot: "Няма заняткаў",
@@ -91,11 +93,10 @@ const translations = {
             "Понедельник": "Панядзелак", "Вторник": "Аўторак", "Среда": "Серада", 
             "Четверг": "Чацвер", "Пятница": "Пятніца", "Суббота": "Субота" 
         },
-        // НОВАЕ
         lblSubgroup: "Падгрупа:",
         subgroupAll: "Усе",
         offlineMode: "⚠️ АФЛАЙН РЭЖЫМ (Дадзеныя з кэшу)",
-        lblSgShort: "П/г"
+        lblSgShort: "П/г "
     }
 };
 
@@ -111,7 +112,7 @@ let state = {
 let scheduleData = {};
 const daysOrder = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
 
-// == 1. ІНІЦЫЯЛІЗАЦЫЯ І КЭШ (Абноўлена) ==
+// == 1. ІНІЦЫЯЛІЗАЦЫЯ І КЭШ ==
 async function initApp() {
     // 1. Чытаем налады
     const cachedSettings = localStorage.getItem('bsac_settings');
@@ -134,13 +135,13 @@ async function initApp() {
         }
     }
 
-    // 3. Прымяняем UI
+    // 3. UI
     applyTheme();
     applyLang();
     document.getElementById('groupSelect').value = state.group;
     document.getElementById('subgroupSelect').value = state.subgroup;
 
-    // 4. ЗАГРУЗКА ДАДЗЕНЫХ + КЭШ
+    // 4. ЗАГРУЗКА (Інтэрнэт -> Кэш -> Памылка)
     const offlineBadge = document.getElementById('offlineBadge');
     
     try {
@@ -151,16 +152,18 @@ async function initApp() {
         
         // Поспех -> захоўваем у кэш
         localStorage.setItem('bsac_cached_schedule', JSON.stringify(scheduleData));
-        offlineBadge.classList.add('hidden');
+        if(offlineBadge) offlineBadge.classList.add('hidden');
         
     } catch (e) {
-        console.warn("Offline mode or Error:", e);
+        console.warn("Offline/Error:", e);
         // Памылка -> чытаем з кэша
         const cachedData = localStorage.getItem('bsac_cached_schedule');
         if (cachedData) {
             scheduleData = JSON.parse(cachedData);
-            offlineBadge.classList.remove('hidden');
-            offlineBadge.textContent = t('offlineMode');
+            if(offlineBadge) {
+                offlineBadge.classList.remove('hidden');
+                offlineBadge.textContent = t('offlineMode');
+            }
         } else {
             document.getElementById('uiPlaceholder').textContent = t('errorLoad');
             return;
@@ -183,7 +186,7 @@ function t(key) {
     return translations[state.lang][key] || key;
 }
 
-// == UI EVENT LISTENERS ==
+// == UI HANDLERS ==
 const themeBtn = document.getElementById('themeBtn');
 const langBtn = document.getElementById('langBtn');
 const groupSelect = document.getElementById('groupSelect');
@@ -210,7 +213,7 @@ groupSelect.addEventListener('change', (e) => {
 
 subgroupSelect.addEventListener('change', (e) => {
     state.subgroup = e.target.value;
-    renderSchedule(state.group); // Перарысоўваем пры змене падгрупы
+    renderSchedule(state.group);
     saveSettings();
 });
 
@@ -227,13 +230,12 @@ function applyLang() {
     });
 }
 
-// == РЭНДЭРЫНГ (З падтрымкай падгруп) ==
+// == РЭНДЭРЫНГ (АСНОЎНАЯ ЛОГІКА) ==
 function renderSchedule(group) {
     const container = document.getElementById('scheduleContainer');
-    // Не сціраем offlineBadge, калі ён ёсць
     const offlineNode = document.getElementById('offlineBadge');
     container.innerHTML = '';
-    container.appendChild(offlineNode); // Вяртаем яго назад
+    if(offlineNode) container.appendChild(offlineNode);
 
     const data = scheduleData[group] || {}; 
 
@@ -260,63 +262,69 @@ function renderSchedule(group) {
         TIME_SLOTS.forEach((timeSlot) => {
             const row = document.createElement('tr');
             
+            // 1. ЧАС
             const timeCol = document.createElement('td');
             timeCol.className = 'time-col';
             timeCol.textContent = timeSlot;
             row.appendChild(timeCol);
 
-            // Шукаем пару па часе
-            const lessonIndex = dayLessons.findIndex(l => l.time === timeSlot);
-            const lesson = dayLessons[lessonIndex];
-
+            // 2. ІНФАРМАЦЫЯ
             const infoCol = document.createElement('td');
+            
+            // Знаходзім УСЕ пары на гэты час
+            // Захоўваем realIndex, каб потым карэктна рэдагаваць
+            const slotLessons = dayLessons.map((l, index) => ({...l, realIndex: index}))
+                                          .filter(l => l.time === timeSlot);
 
-            if (lesson) {
-                // ПРАВЕРКА ПАДГРУПЫ
-                // Логіка: 
-                // Калі "Усе" (0) -> паказваем усё.
-                // Калі выбрана "1" -> паказваем агульныя (sg=0/null) І sg=1. Хаваем sg=2.
-                // Для Multi-урокаў трэба фільтраваць унутры.
+            const currentSg = parseInt(state.subgroup) || 0;
 
-                if (lesson.multi) {
-                    let hasVisibleSubLessons = false;
-                    
-                    lesson.content.forEach((subItem, subIdx) => {
-                        // Правяраем, ці падыходзіць падгрупа
-                        if (isSubgroupVisible(subItem.num_subgroup)) {
-                            const div = document.createElement('div');
-                            div.className = 'week-split';
-                            div.innerHTML = generateLessonHTML(subItem);
-                            if (state.isAdmin) {
-                                div.appendChild(createAdminControls(group, dayKey, lessonIndex, subIdx));
-                            }
-                            infoCol.appendChild(div);
-                            hasVisibleSubLessons = true;
-                        }
-                    });
+            // А. Ёсць агульная пара (0) -> яна займае ўвесь слот
+            const commonLesson = slotLessons.find(l => (parseInt(l.num_subgroup) || 0) === 0);
 
-                    // Калі пасля фільтрацыі нічога не засталося
-                    if (!hasVisibleSubLessons) {
-                        renderEmptySlot(infoCol, group, dayKey, timeSlot);
-                    }
+            if (commonLesson) {
+                renderSingleLessonBlock(infoCol, commonLesson, group, dayKey, commonLesson.realIndex);
+            } 
+            else {
+                // Б. Разбіўка па падгрупах (1 і 2)
+                const sg1Lessons = slotLessons.filter(l => parseInt(l.num_subgroup) === 1);
+                const sg2Lessons = slotLessons.filter(l => parseInt(l.num_subgroup) === 2);
 
-                } else {
-                    // Звычайная пара (Single)
-                    if (isSubgroupVisible(lesson.num_subgroup)) {
-                        infoCol.innerHTML = generateLessonHTML(lesson);
-                        if (state.isAdmin) {
-                            infoCol.appendChild(createAdminControls(group, dayKey, lessonIndex, null));
-                        }
-                    } else {
-                        // Калі пара ёсць, але схавана фільтрам -> паказваем як пустую (але не даем дадаць новую для юзера)
-                        // АДНАК, калі адмін - ён павінен бачыць усё? Не, адмін таксама фільтруе.
-                        // Давайце паказваць "Пуста"
-                        renderEmptySlot(infoCol, group, dayKey, timeSlot);
+                const showSg1 = (currentSg === 0 || currentSg === 1);
+                const showSg2 = (currentSg === 0 || currentSg === 2);
+
+                let hasContent = false;
+
+                // 1-я Падгрупа
+                if (showSg1) {
+                    if (sg1Lessons.length > 0) {
+                        sg1Lessons.forEach(l => {
+                            renderLessonAsSplit(infoCol, l, group, dayKey, l.realIndex);
+                            hasContent = true;
+                        });
+                    } else if (state.isAdmin && currentSg !== 2) {
+                        // Калі пуста, але мы хочам бачыць 1-ю (і мы Адмін)
+                        renderAddButtonMini(infoCol, group, dayKey, timeSlot, 1);
+                        hasContent = true; 
                     }
                 }
-            } else {
-                // Пары няма наогул
-                renderEmptySlot(infoCol, group, dayKey, timeSlot);
+
+                // 2-я Падгрупа
+                if (showSg2) {
+                    if (sg2Lessons.length > 0) {
+                        sg2Lessons.forEach(l => {
+                            renderLessonAsSplit(infoCol, l, group, dayKey, l.realIndex);
+                            hasContent = true;
+                        });
+                    } else if (state.isAdmin && currentSg !== 1) {
+                        renderAddButtonMini(infoCol, group, dayKey, timeSlot, 2);
+                        hasContent = true;
+                    }
+                }
+
+                // Калі наогул пуста
+                if (!hasContent) {
+                    renderEmptySlot(infoCol, group, dayKey, timeSlot, currentSg);
+                }
             }
 
             row.appendChild(infoCol);
@@ -328,25 +336,81 @@ function renderSchedule(group) {
     });
 }
 
-// Дапаможная функцыя: ці паказваць гэты элемент
-function isSubgroupVisible(itemSg) {
-    // Калі элемент не мае пазнакі падгрупы ці 0 -> ён для ўсіх
-    const sg = parseInt(itemSg) || 0;
-    const currentSg = parseInt(state.subgroup) || 0; // Што выбраў юзер
-
-    if (currentSg === 0) return true; // Юзер хоча бачыць усё
-    if (sg === 0) return true; // Пара агульная
-    return sg === currentSg; // Пара супадае з падгрупай
+// Дапаможная: Агульная пара
+function renderSingleLessonBlock(container, lesson, group, dayKey, index) {
+    if (lesson.multi) {
+        lesson.content.forEach((sub, subIdx) => {
+             const div = document.createElement('div');
+             div.className = 'week-split';
+             div.innerHTML = generateLessonHTML(sub);
+             if (state.isAdmin) div.appendChild(createAdminControls(group, dayKey, index, subIdx));
+             container.appendChild(div);
+        });
+    } else {
+        container.innerHTML = generateLessonHTML(lesson);
+        if (state.isAdmin) container.appendChild(createAdminControls(group, dayKey, index, null));
+    }
 }
 
-function renderEmptySlot(container, group, dayKey, timeSlot) {
+// Дапаможная: Пара ў падгрупе (Стылізаваная)
+function renderLessonAsSplit(container, lesson, group, dayKey, index) {
+    // Колеры: 1 = Аранжавы, 2 = Фіялетавы
+    const borderStyle = lesson.num_subgroup == 1 ? "4px solid #e67e22" : "4px solid #9b59b6";
+
+    if (lesson.multi) {
+        lesson.content.forEach((sub, subIdx) => {
+             const div = document.createElement('div');
+             div.className = 'week-split'; 
+             div.style.borderLeft = borderStyle;
+             div.style.paddingLeft = "8px";
+             
+             div.innerHTML = generateLessonHTML({...sub, num_subgroup: lesson.num_subgroup}); 
+             if (state.isAdmin) div.appendChild(createAdminControls(group, dayKey, index, subIdx));
+             container.appendChild(div);
+        });
+    } else {
+        const div = document.createElement('div');
+        div.className = 'week-split';
+        div.style.borderLeft = borderStyle;
+        div.style.paddingLeft = "8px";
+        
+        div.innerHTML = generateLessonHTML(lesson);
+        if (state.isAdmin) div.appendChild(createAdminControls(group, dayKey, index, null));
+        container.appendChild(div);
+    }
+}
+
+// Міні-кнопка для дадання ў пустую падгрупу
+function renderAddButtonMini(container, group, dayKey, timeSlot, subgroupNum) {
+    const div = document.createElement('div');
+    div.className = 'week-split empty-slot';
+    div.style.padding = "5px";
+    div.style.borderLeft = "2px dashed #ccc";
+    
+    const btn = document.createElement('button');
+    btn.className = 'btn-add';
+    btn.textContent = `➕ ${t('lblSgShort')}${subgroupNum}`;
+    btn.style.fontSize = "0.75rem";
+    btn.style.opacity = "0.8";
+    
+    btn.onclick = () => addNewLesson(group, dayKey, timeSlot, subgroupNum);
+    
+    div.appendChild(btn);
+    container.appendChild(div);
+}
+
+// Пусты слот (вялікі)
+function renderEmptySlot(container, group, dayKey, timeSlot, currentSg) {
     container.className = 'empty-slot';
     container.textContent = state.isAdmin ? "" : t('emptySlot');
+    
     if (state.isAdmin) {
         const addBtn = document.createElement('button');
         addBtn.className = 'btn-add';
-        addBtn.textContent = t('btnAdd');
-        addBtn.onclick = () => addNewLesson(group, dayKey, timeSlot);
+        const targetSg = currentSg === 0 ? 0 : currentSg;
+        addBtn.textContent = targetSg === 0 ? t('btnAdd') : `➕ ${t('lblSgShort')}${targetSg}`;
+        
+        addBtn.onclick = () => addNewLesson(group, dayKey, timeSlot, targetSg);
         container.appendChild(addBtn);
     }
 }
@@ -359,9 +423,10 @@ function generateLessonHTML(item) {
         weekText = `<span class="week-badge ${weekClass}">${t('lblWeeks')} ${w}</span>`;
     }
 
-    // Бэйдж падгрупы
     let sgText = '';
     const sg = parseInt(item.num_subgroup) || 0;
+    // Паказваем бэйдж, толькі калі гэта не відавочна з кантэксту (напрыклад у рэжыме "Усе" можна не паказваць, бо ёсць колер)
+    // Але для пэўнасці пакінем
     if (sg > 0) {
         sgText = `<span class="subgroup-badge sg-${sg}">${t('lblSgShort')}${sg}</span>`;
     }
@@ -377,7 +442,7 @@ function generateLessonHTML(item) {
     `;
 }
 
-// == АДМІН: КІРАВАННЕ ==
+// == КІРАВАННЕ (АДМІН) ==
 function createAdminControls(group, dayKey, index, subIndex) {
     const div = document.createElement('div');
     div.className = 'admin-controls';
@@ -397,7 +462,7 @@ function createAdminControls(group, dayKey, index, subIndex) {
     return div;
 }
 
-function addNewLesson(group, dayKey, timeSlot) {
+function addNewLesson(group, dayKey, timeSlot, subgroupNum = 0) {
     if (!scheduleData[group]) scheduleData[group] = {};
     if (!scheduleData[group][dayKey]) scheduleData[group][dayKey] = [];
 
@@ -407,7 +472,7 @@ function addNewLesson(group, dayKey, timeSlot) {
         teacher: "",
         room: "",
         weeks: "",
-        num_subgroup: 0 // 0 = агульная
+        num_subgroup: subgroupNum 
     };
     
     scheduleData[group][dayKey].push(newLesson);
@@ -429,7 +494,6 @@ function deleteLesson(group, dayKey, index, subIndex) {
     renderSchedule(group);
 }
 
-// РЭДАГАВАННЕ (Дададзена поле падгрупы)
 function editLesson(group, dayKey, index, subIndex) {
     let targetLesson;
     if (subIndex !== null) {
@@ -439,16 +503,14 @@ function editLesson(group, dayKey, index, subIndex) {
     }
 
     const btn = window.event.target;
-    // Шукаем бліжэйшы кантэйнер (td або div.week-split)
+    // Шукаем бліжэйшы кантэйнер
     const container = btn.closest('.week-split') || btn.closest('td');
-    
-    const originalHTML = container.innerHTML;
     
     // Бягучая падгрупа
     const currentSg = targetLesson.num_subgroup || 0;
 
     container.innerHTML = `
-        <div style="background:var(--bg-card); border:1px solid var(--accent-primary); padding:8px; border-radius:6px;">
+        <div style="background:var(--bg-card); border:1px solid var(--accent-primary); padding:8px; border-radius:6px; z-index:100; position:relative;">
             <div style="display:flex; gap:5px; margin-bottom:5px;">
                 <div style="flex:1;">
                     <label style="font-size:0.7em;">${t('lblWeeks')}</label>
@@ -489,7 +551,7 @@ function editLesson(group, dayKey, index, subIndex) {
     const btnCancel = container.querySelector('.btn-cancel');
     
     btnSave.onclick = (e) => {
-        e.stopPropagation(); // Каб не трыгерыць клікі па табліцы
+        e.stopPropagation();
         targetLesson.weeks = container.querySelector('.inp-weeks').value;
         targetLesson.subject = container.querySelector('.inp-subj').value;
         targetLesson.teacher = container.querySelector('.inp-teach').value;
@@ -501,11 +563,11 @@ function editLesson(group, dayKey, index, subIndex) {
     
     btnCancel.onclick = (e) => {
         e.stopPropagation();
-        renderSchedule(state.group); // Скідваем выгляд
+        renderSchedule(state.group); 
     };
 }
 
-// == API GITHUB і АЎТАРЫЗАЦЫЯ (БЕЗ ЗМЕН) ==
+// == GITHUB API ==
 async function saveToGithub() {
     if (!state.token) return alert(t('errorAccess'));
     const btn = document.querySelector('.global-save-btn');
@@ -525,7 +587,6 @@ async function saveToGithub() {
         });
         if (!putRes.ok) throw new Error("Put Error");
         
-        // Абнаўляем кэш пасля паспяховага захавання
         localStorage.setItem('bsac_cached_schedule', JSON.stringify(scheduleData));
         alert(t('successSave'));
     } catch (e) {
@@ -541,6 +602,7 @@ async function sha256(str) {
     return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
+// == AUTH ==
 const loginModal = document.getElementById('adminModal');
 const logoutModal = document.getElementById('logoutModal');
 const logo = document.getElementById('secretLogo');
