@@ -1,4 +1,3 @@
-    
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -23,10 +22,18 @@
             </div>
             
             <div class="group-selector">
+                <!-- ВЫБАР ПАДГРУПЫ (НОВАЕ) -->
+                <label for="subgroupSelect" data-i18n="lblSubgroup">Подгруппа:</label>
+                <select id="subgroupSelect">
+                    <option value="0" data-i18n="subgroupAll">Все</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                </select>
+
+                <!-- ВЫБАР ГРУПЫ (Старое) -->
                 <label for="groupSelect" id="uiLabel" data-i18n="selectLabel">Группа:</label>
                 <select id="groupSelect">
                     <option value="" disabled selected id="uiSelectDefault" data-i18n="selectDefault">-- Группа --</option>
-                    <!-- Спіс груп можна пашыраць -->
                     <option value="ИП591">ИП591</option>
                     <option value="СИ591">СИ591</option>
                     <option value="АП591">АП591</option>
@@ -38,6 +45,11 @@
     </header>
 
     <main id="scheduleContainer">
+        <!-- Індыкатар афлайн рэжыму (НОВАЕ) -->
+        <div id="offlineBadge" class="hidden" style="text-align:center; color: var(--accent-danger); font-weight:bold; margin-bottom:10px;">
+            ⚠️ OFFLINE MODE
+        </div>
+
         <div class="placeholder" id="uiPlaceholder" data-i18n="placeholder">
             Загрузка...
         </div>

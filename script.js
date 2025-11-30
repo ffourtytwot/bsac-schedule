@@ -1,21 +1,15 @@
-// == НАЛАДЫ (ЗАПОЎНІЦЕ ГЭТА!) ==
+// == НАЛАДЫ ==
 const REPO_OWNER = "User";       
 const REPO_NAME = "Repo";     
 const FILE_PATH = "https://raw.githubusercontent.com/ffourtytwot/bsac-schedule/main/schedule.json"; 
 const SALT = "bsac_super_salt_2025"; 
-const TARGET_HASH = "38bff4d29d08888d2f3c8e0250551c3d7662bcc2cd1490048dc22a89502afc41"; // generateHash("ghp_...")
+const TARGET_HASH = "38bff4d29d08888d2f3c8e0250551c3d7662bcc2cd1490048dc22a89502afc41"; 
 
-// == ЧАСАВЫЯ СЛОТЫ (Шаблон дня) ==
 const TIME_SLOTS = [
-    "08:00-09:40",
-    "09:55-11:35",
-    "12:15-13:55",
-    "14:10-15:50",
-    "16:20-18:00",
-    "18:15-19:55" // Вячэрняя, калі трэба
+    "08:00-09:40", "09:55-11:35", "12:15-13:55",
+    "14:10-15:50", "16:20-18:00", "18:15-19:55"
 ];
 
-// == ЛАКАЛІЗАЦЫЯ (ПОЎНАЯ) ==
 const translations = {
     ru: {
         title: "Расписание БГАС 1 Курс",
@@ -37,11 +31,9 @@ const translations = {
         errorAccess: "Неверный токен.",
         successSave: "✅ Изменения успешно сохранены на GitHub!",
         errorSave: "❌ Ошибка сохранения: ",
-        confirmDelete: "Очистить этот слот? (Он станет пустым шаблоном)",
+        confirmDelete: "Очистить этот слот?",
         btnSaveGlobal: "☁️ Сохранить на GitHub",
         saving: "⏳ Сохранение...",
-        
-        // Элементы пар
         emptySlot: "Нет занятий",
         btnAdd: "➕ Добавить",
         btnEdit: "✎",
@@ -52,11 +44,15 @@ const translations = {
         lblSubj: "Предмет",
         lblTeach: "Преподаватель",
         lblRoom: "Аудитория",
-        
         days: { 
             "Понедельник": "Понедельник", "Вторник": "Вторник", "Среда": "Среда", 
             "Четверг": "Четверг", "Пятница": "Пятница", "Суббота": "Суббота" 
-        }
+        },
+        // НОВАЕ
+        lblSubgroup: "Подгруппа:",
+        subgroupAll: "Все",
+        offlineMode: "⚠️ ОФФЛАЙН РЕЖИМ (Данные из кэша)",
+        lblSgShort: "П/г"
     },
     be: {
         title: "Расклад БДАС 1 Курс",
@@ -78,10 +74,9 @@ const translations = {
         errorAccess: "Няправільны токен.",
         successSave: "✅ Змены паспяхова захаваны на GitHub!",
         errorSave: "❌ Памылка захавання: ",
-        confirmDelete: "Ачысціць гэты слот? (Ён стане пустым)",
+        confirmDelete: "Ачысціць гэты слот?",
         btnSaveGlobal: "☁️ Захаваць на GitHub",
         saving: "⏳ Захаванне...",
-
         emptySlot: "Няма заняткаў",
         btnAdd: "➕ Дадаць",
         btnEdit: "✎",
@@ -92,19 +87,23 @@ const translations = {
         lblSubj: "Прадмет",
         lblTeach: "Выкладчык",
         lblRoom: "Аўдыторыя",
-
         days: { 
             "Понедельник": "Панядзелак", "Вторник": "Аўторак", "Среда": "Серада", 
             "Четверг": "Чацвер", "Пятница": "Пятніца", "Суббота": "Субота" 
-        }
+        },
+        // НОВАЕ
+        lblSubgroup: "Падгрупа:",
+        subgroupAll: "Усе",
+        offlineMode: "⚠️ АФЛАЙН РЭЖЫМ (Дадзеныя з кэшу)",
+        lblSgShort: "П/г"
     }
 };
 
-// Стан праграмы
 let state = {
     lang: 'ru',
     theme: 'light',
     group: '',
+    subgroup: '0', // 0 = Усе, 1 = 1-я, 2 = 2-я
     isAdmin: false,
     token: ''
 };
@@ -112,15 +111,16 @@ let state = {
 let scheduleData = {};
 const daysOrder = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
 
-// == 1. ІНІЦЫЯЛІЗАЦЫЯ І КЭШ ==
+// == 1. ІНІЦЫЯЛІЗАЦЫЯ І КЭШ (Абноўлена) ==
 async function initApp() {
-    // 1. Чытаем налады з кэша
+    // 1. Чытаем налады
     const cachedSettings = localStorage.getItem('bsac_settings');
     if (cachedSettings) {
         const parsed = JSON.parse(cachedSettings);
         state.lang = parsed.lang || 'ru';
         state.theme = parsed.theme || 'light';
         state.group = parsed.group || '';
+        state.subgroup = parsed.subgroup || '0';
     }
 
     // 2. Чытаем токен
@@ -134,42 +134,60 @@ async function initApp() {
         }
     }
 
-    // 3. Прымяняем налады
+    // 3. Прымяняем UI
     applyTheme();
     applyLang();
     document.getElementById('groupSelect').value = state.group;
+    document.getElementById('subgroupSelect').value = state.subgroup;
 
-    // 4. Загружаем дадзеныя
+    // 4. ЗАГРУЗКА ДАДЗЕНЫХ + КЭШ
+    const offlineBadge = document.getElementById('offlineBadge');
+    
     try {
         const response = await fetch(`${FILE_PATH}?t=${new Date().getTime()}`);
         if (!response.ok) throw new Error("HTTP " + response.status);
+        
         scheduleData = await response.json();
         
-        if (state.group) renderSchedule(state.group);
+        // Поспех -> захоўваем у кэш
+        localStorage.setItem('bsac_cached_schedule', JSON.stringify(scheduleData));
+        offlineBadge.classList.add('hidden');
+        
     } catch (e) {
-        console.error(e);
-        document.getElementById('uiPlaceholder').textContent = t('errorLoad') + ": " + e.message;
+        console.warn("Offline mode or Error:", e);
+        // Памылка -> чытаем з кэша
+        const cachedData = localStorage.getItem('bsac_cached_schedule');
+        if (cachedData) {
+            scheduleData = JSON.parse(cachedData);
+            offlineBadge.classList.remove('hidden');
+            offlineBadge.textContent = t('offlineMode');
+        } else {
+            document.getElementById('uiPlaceholder').textContent = t('errorLoad');
+            return;
+        }
     }
+    
+    if (state.group) renderSchedule(state.group);
 }
 
-// Захаванне налад
 function saveSettings() {
     localStorage.setItem('bsac_settings', JSON.stringify({
         lang: state.lang,
         theme: state.theme,
-        group: state.group
+        group: state.group,
+        subgroup: state.subgroup
     }));
 }
 
-// Хэлпер перакладу
 function t(key) {
     return translations[state.lang][key] || key;
 }
 
-// == UI ЛОГІКА ==
+// == UI EVENT LISTENERS ==
 const themeBtn = document.getElementById('themeBtn');
 const langBtn = document.getElementById('langBtn');
 const groupSelect = document.getElementById('groupSelect');
+const subgroupSelect = document.getElementById('subgroupSelect');
 
 themeBtn.addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
@@ -180,13 +198,19 @@ themeBtn.addEventListener('click', () => {
 langBtn.addEventListener('click', () => {
     state.lang = state.lang === 'ru' ? 'be' : 'ru';
     applyLang();
-    if(state.group) renderSchedule(state.group); // Перарысоўка раскладу на новай мове
+    if(state.group) renderSchedule(state.group);
     saveSettings();
 });
 
 groupSelect.addEventListener('change', (e) => {
     state.group = e.target.value;
     renderSchedule(state.group);
+    saveSettings();
+});
+
+subgroupSelect.addEventListener('change', (e) => {
+    state.subgroup = e.target.value;
+    renderSchedule(state.group); // Перарысоўваем пры змене падгрупы
     saveSettings();
 });
 
@@ -197,27 +221,22 @@ function applyTheme() {
 
 function applyLang() {
     langBtn.textContent = state.lang.toUpperCase();
-    
-    // Пераклад статычных элементаў
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         el.textContent = t(key);
     });
-    
-    // Плэйсхолдэры input
-    document.querySelectorAll('input[placeholder]').forEach(el => {
-        // Тут можна дадаць логіку, калі трэба перакладаць і placeholders
-    });
 }
 
-// == РЭНДЭРЫНГ (Галоўная логіка) ==
+// == РЭНДЭРЫНГ (З падтрымкай падгруп) ==
 function renderSchedule(group) {
     const container = document.getElementById('scheduleContainer');
+    // Не сціраем offlineBadge, калі ён ёсць
+    const offlineNode = document.getElementById('offlineBadge');
     container.innerHTML = '';
+    container.appendChild(offlineNode); // Вяртаем яго назад
 
-    const data = scheduleData[group] || {}; // Дадзеныя групы ці пуста
+    const data = scheduleData[group] || {}; 
 
-    // Кнопка захавання для адміна
     if (state.isAdmin) {
         const saveBtn = document.createElement('button');
         saveBtn.className = 'global-save-btn';
@@ -238,55 +257,66 @@ function renderSchedule(group) {
         const table = document.createElement('table');
         const dayLessons = data[dayKey] || [];
 
-        // Ітэрацыя па ФІКСАВАНЫХ СЛОТАХ, а не па існуючых парах
         TIME_SLOTS.forEach((timeSlot) => {
             const row = document.createElement('tr');
             
-            // 1. Час
             const timeCol = document.createElement('td');
             timeCol.className = 'time-col';
             timeCol.textContent = timeSlot;
             row.appendChild(timeCol);
 
-            // 2. Пошук пары ў JSON для гэтага часу
-            // Шукаем, ці ёсць у масіве data[dayKey] аб'ект з time === timeSlot
+            // Шукаем пару па часе
             const lessonIndex = dayLessons.findIndex(l => l.time === timeSlot);
             const lesson = dayLessons[lessonIndex];
 
             const infoCol = document.createElement('td');
 
             if (lesson) {
-                // ПАРА ЁСЦЬ
+                // ПРАВЕРКА ПАДГРУПЫ
+                // Логіка: 
+                // Калі "Усе" (0) -> паказваем усё.
+                // Калі выбрана "1" -> паказваем агульныя (sg=0/null) І sg=1. Хаваем sg=2.
+                // Для Multi-урокаў трэба фільтраваць унутры.
+
                 if (lesson.multi) {
-                    // Мульці-пара (падгрупы ці тыдні)
+                    let hasVisibleSubLessons = false;
+                    
                     lesson.content.forEach((subItem, subIdx) => {
-                        const div = document.createElement('div');
-                        div.className = 'week-split';
-                        div.innerHTML = generateLessonHTML(subItem);
-                        if (state.isAdmin) {
-                            div.appendChild(createAdminControls(group, dayKey, lessonIndex, subIdx));
+                        // Правяраем, ці падыходзіць падгрупа
+                        if (isSubgroupVisible(subItem.num_subgroup)) {
+                            const div = document.createElement('div');
+                            div.className = 'week-split';
+                            div.innerHTML = generateLessonHTML(subItem);
+                            if (state.isAdmin) {
+                                div.appendChild(createAdminControls(group, dayKey, lessonIndex, subIdx));
+                            }
+                            infoCol.appendChild(div);
+                            hasVisibleSubLessons = true;
                         }
-                        infoCol.appendChild(div);
                     });
+
+                    // Калі пасля фільтрацыі нічога не засталося
+                    if (!hasVisibleSubLessons) {
+                        renderEmptySlot(infoCol, group, dayKey, timeSlot);
+                    }
+
                 } else {
-                    // Звычайная пара
-                    infoCol.innerHTML = generateLessonHTML(lesson);
-                    if (state.isAdmin) {
-                        infoCol.appendChild(createAdminControls(group, dayKey, lessonIndex, null));
+                    // Звычайная пара (Single)
+                    if (isSubgroupVisible(lesson.num_subgroup)) {
+                        infoCol.innerHTML = generateLessonHTML(lesson);
+                        if (state.isAdmin) {
+                            infoCol.appendChild(createAdminControls(group, dayKey, lessonIndex, null));
+                        }
+                    } else {
+                        // Калі пара ёсць, але схавана фільтрам -> паказваем як пустую (але не даем дадаць новую для юзера)
+                        // АДНАК, калі адмін - ён павінен бачыць усё? Не, адмін таксама фільтруе.
+                        // Давайце паказваць "Пуста"
+                        renderEmptySlot(infoCol, group, dayKey, timeSlot);
                     }
                 }
             } else {
-                // ПАРЫ НЯМА (ПУСТЫ СЛОТ)
-                infoCol.className = 'empty-slot';
-                infoCol.textContent = state.isAdmin ? "" : t('emptySlot');
-                
-                if (state.isAdmin) {
-                    const addBtn = document.createElement('button');
-                    addBtn.className = 'btn-add';
-                    addBtn.textContent = t('btnAdd');
-                    addBtn.onclick = () => addNewLesson(group, dayKey, timeSlot);
-                    infoCol.appendChild(addBtn);
-                }
+                // Пары няма наогул
+                renderEmptySlot(infoCol, group, dayKey, timeSlot);
             }
 
             row.appendChild(infoCol);
@@ -298,6 +328,29 @@ function renderSchedule(group) {
     });
 }
 
+// Дапаможная функцыя: ці паказваць гэты элемент
+function isSubgroupVisible(itemSg) {
+    // Калі элемент не мае пазнакі падгрупы ці 0 -> ён для ўсіх
+    const sg = parseInt(itemSg) || 0;
+    const currentSg = parseInt(state.subgroup) || 0; // Што выбраў юзер
+
+    if (currentSg === 0) return true; // Юзер хоча бачыць усё
+    if (sg === 0) return true; // Пара агульная
+    return sg === currentSg; // Пара супадае з падгрупай
+}
+
+function renderEmptySlot(container, group, dayKey, timeSlot) {
+    container.className = 'empty-slot';
+    container.textContent = state.isAdmin ? "" : t('emptySlot');
+    if (state.isAdmin) {
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn-add';
+        addBtn.textContent = t('btnAdd');
+        addBtn.onclick = () => addNewLesson(group, dayKey, timeSlot);
+        container.appendChild(addBtn);
+    }
+}
+
 function generateLessonHTML(item) {
     let weekText = '';
     if (item.weeks) {
@@ -305,8 +358,19 @@ function generateLessonHTML(item) {
         const weekClass = w.includes('1') ? 'week-odd' : 'week-even';
         weekText = `<span class="week-badge ${weekClass}">${t('lblWeeks')} ${w}</span>`;
     }
+
+    // Бэйдж падгрупы
+    let sgText = '';
+    const sg = parseInt(item.num_subgroup) || 0;
+    if (sg > 0) {
+        sgText = `<span class="subgroup-badge sg-${sg}">${t('lblSgShort')}${sg}</span>`;
+    }
+
     return `
-        ${weekText}
+        <div>
+            ${sgText}
+            ${weekText}
+        </div>
         <span class="subject">${item.subject}</span>
         <div class="details">${t('lblTeach')}: ${item.teacher || '-'}</div>
         <div class="location">${t('lblRoom')}: ${item.room || '-'}</div>
@@ -333,49 +397,40 @@ function createAdminControls(group, dayKey, index, subIndex) {
     return div;
 }
 
-// ДАДАННЕ НОВАЙ ПАРЫ
 function addNewLesson(group, dayKey, timeSlot) {
     if (!scheduleData[group]) scheduleData[group] = {};
     if (!scheduleData[group][dayKey]) scheduleData[group][dayKey] = [];
 
-    // Ствараем пусты аб'ект
     const newLesson = {
         time: timeSlot,
-        subject: "Новый предмет",
+        subject: "Новый",
         teacher: "",
         room: "",
-        weeks: ""
+        weeks: "",
+        num_subgroup: 0 // 0 = агульная
     };
     
     scheduleData[group][dayKey].push(newLesson);
-    // Адразу адкрываем рэдагаванне, бо пара "Новая"
-    const newIndex = scheduleData[group][dayKey].length - 1;
-    renderSchedule(group); // Спачатку малюем, каб з'явіўся DOM
-    // Можна адразу трыгернуць editLesson, але для прастаты пакуль проста рэндэр
+    renderSchedule(group);
 }
 
-// ВЫДАЛЕННЕ (АЧЫСТКА)
 function deleteLesson(group, dayKey, index, subIndex) {
     if (!confirm(t('confirmDelete'))) return;
 
     if (subIndex !== null) {
-        // Выдаляем падгрупу
         const parent = scheduleData[group][dayKey][index];
         parent.content.splice(subIndex, 1);
-        // Калі ў multi нічога не засталося, выдаляем увесь бацькоўскі элемент
         if (parent.content.length === 0) {
             scheduleData[group][dayKey].splice(index, 1);
         }
     } else {
-        // Выдаляем аб'ект з масіва -> Слот стане пустым пры наступным рэндэры
         scheduleData[group][dayKey].splice(index, 1);
     }
     renderSchedule(group);
 }
 
-// РЭДАГАВАННЕ
+// РЭДАГАВАННЕ (Дададзена поле падгрупы)
 function editLesson(group, dayKey, index, subIndex) {
-    // Лагічны пошук аб'екта
     let targetLesson;
     if (subIndex !== null) {
         targetLesson = scheduleData[group][dayKey][index].content[subIndex];
@@ -383,60 +438,47 @@ function editLesson(group, dayKey, index, subIndex) {
         targetLesson = scheduleData[group][dayKey][index];
     }
 
-    // Шукаем DOM элемент. Цяжэй, бо мы перайшлі на Time Slots, а не індэксы
-    // Але мы ведаем час targetLesson.time.
-    // Аднак прасцей перамаляваць канкрэтную ячэйку, але для стабільнасці
-    // мы проста знойдзем патрэбны div праз querySelector па тэксце ці пераробім renderSchedule,
-    // але прасцей проста зрабіць "Modal Edit" ці "Inline Replace".
-    // Зробім Inline Replace, але трэба знайсці бацьку кнопкі.
-    
-    // Хакаваты спосаб: Event target, але мы яго не перадалі.
-    // Таму давайце проста перамалюем усё акно ў рэжым рэдагавання? Не, гэта доўга.
-    // Давайце выкарыстоўваць event.target, які перададзім пры кліку.
-    // Але ў createAdminControls onclick - гэта стрэлачная функцыя.
-    // ПЕРАПІШАМ createAdminControls каб атрымаць доступ да event.
-    
-    // Прасцей: ператварыць увесь расклад у "Edit Form"? Не.
-    
-    // РАШЭННЕ: Мы проста адкрыем prompt (дрэнна) ці заменім усё праз пошук.
-    // Давайце зробім прыгожа: знойдзем бацькоўскі кантэйнер праз DOM (гэта не вельмі чыста, але працуе).
-    // Але ў нас няма доступу да `this`.
-    
-    // Вернемся да варыянту з мінулага кода: мы ведаем `index`. Але гэта індэкс у МАСІВЕ JSON.
-    // А ў табліцы радкі ідуць па TIME_SLOTS.
-    // Таму мы не можам проста ўзяць `tr[index]`.
-    
-    // Актуальны падыход: Prompt для прастаты кода (каб не раздзімаць файл), 
-    // АБО перамаляваць гэты канкрэтны блок на форму.
-    // Давайце перамалюем усю табліцу, але пазначым, што гэты элемент у рэжыме рэдагавання.
-    
-    // Дадаем у state: editing: { group, day, index, subIndex }
-    state.editing = { group, dayKey, index, subIndex };
-    renderEditForm(targetLesson);
-}
-
-function renderEditForm(targetLesson) {
-    // Мы не будзем шукаць элемент у DOM. Мы проста выклічам мадалку? 
-    // Не, карыстальнік прасіў "як было".
-    // Добра, давайце проста выкарыстаем `window.event.target` (гэта працуе ў Chrome/FF).
-    
     const btn = window.event.target;
-    const container = btn.closest('td') || btn.closest('.week-split');
+    // Шукаем бліжэйшы кантэйнер (td або div.week-split)
+    const container = btn.closest('.week-split') || btn.closest('td');
     
-    // Захоўваем HTML
     const originalHTML = container.innerHTML;
     
+    // Бягучая падгрупа
+    const currentSg = targetLesson.num_subgroup || 0;
+
     container.innerHTML = `
-        <div style="background:#fff; border:1px solid #aaa; padding:5px;">
-            <label>${t('lblWeeks')}</label>
-            <input class="edit-input inp-weeks" value="${targetLesson.weeks || ''}">
-            <label>${t('lblSubj')}</label>
+        <div style="background:var(--bg-card); border:1px solid var(--accent-primary); padding:8px; border-radius:6px;">
+            <div style="display:flex; gap:5px; margin-bottom:5px;">
+                <div style="flex:1;">
+                    <label style="font-size:0.7em;">${t('lblWeeks')}</label>
+                    <input class="edit-input inp-weeks" value="${targetLesson.weeks || ''}" placeholder="1,3">
+                </div>
+                <div style="width:60px;">
+                    <label style="font-size:0.7em;">${t('lblSgShort')}</label>
+                    <select class="edit-input inp-sg">
+                        <option value="0" ${currentSg==0?'selected':''}>All</option>
+                        <option value="1" ${currentSg==1?'selected':''}>1</option>
+                        <option value="2" ${currentSg==2?'selected':''}>2</option>
+                    </select>
+                </div>
+            </div>
+            
+            <label style="font-size:0.7em;">${t('lblSubj')}</label>
             <input class="edit-input inp-subj" value="${targetLesson.subject || ''}">
-            <label>${t('lblTeach')}</label>
-            <input class="edit-input inp-teach" value="${targetLesson.teacher || ''}">
-            <label>${t('lblRoom')}</label>
-            <input class="edit-input inp-room" value="${targetLesson.room || ''}">
-            <div class="admin-controls">
+            
+            <div style="display:flex; gap:5px;">
+                <div style="flex:1;">
+                    <label style="font-size:0.7em;">${t('lblTeach')}</label>
+                    <input class="edit-input inp-teach" value="${targetLesson.teacher || ''}">
+                </div>
+                <div style="width:80px;">
+                    <label style="font-size:0.7em;">${t('lblRoom')}</label>
+                    <input class="edit-input inp-room" value="${targetLesson.room || ''}">
+                </div>
+            </div>
+
+            <div class="admin-controls" style="margin-top:10px;">
                 <button class="btn-save">${t('btnOk')}</button>
                 <button class="btn-cancel">${t('btnCancel')}</button>
             </div>
@@ -446,53 +488,45 @@ function renderEditForm(targetLesson) {
     const btnSave = container.querySelector('.btn-save');
     const btnCancel = container.querySelector('.btn-cancel');
     
-    btnSave.onclick = () => {
+    btnSave.onclick = (e) => {
+        e.stopPropagation(); // Каб не трыгерыць клікі па табліцы
         targetLesson.weeks = container.querySelector('.inp-weeks').value;
         targetLesson.subject = container.querySelector('.inp-subj').value;
         targetLesson.teacher = container.querySelector('.inp-teach').value;
         targetLesson.room = container.querySelector('.inp-room').value;
-        renderSchedule(state.group); // Абнавіць выгляд
+        targetLesson.num_subgroup = parseInt(container.querySelector('.inp-sg').value) || 0;
+        
+        renderSchedule(state.group); 
     };
     
-    btnCancel.onclick = () => {
-        container.innerHTML = originalHTML;
-        // Трэба аднавіць слухачы падзей (якія згубіліся пры innerHTML replace), 
-        // таму прасцей перарэндэрыць усё
-        renderSchedule(state.group);
+    btnCancel.onclick = (e) => {
+        e.stopPropagation();
+        renderSchedule(state.group); // Скідваем выгляд
     };
 }
 
-
-// == API GITHUB ==
+// == API GITHUB і АЎТАРЫЗАЦЫЯ (БЕЗ ЗМЕН) ==
 async function saveToGithub() {
     if (!state.token) return alert(t('errorAccess'));
-    
     const btn = document.querySelector('.global-save-btn');
     if(btn) btn.textContent = t('saving');
 
     try {
         const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-        
         const getRes = await fetch(apiUrl, { headers: { "Authorization": `token ${state.token}` }});
         if (!getRes.ok) throw new Error("API Error");
         const fileSha = (await getRes.json()).sha;
-
         const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(scheduleData, null, 2))));
 
         const putRes = await fetch(apiUrl, {
             method: "PUT",
-            headers: { 
-                "Authorization": `token ${state.token}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                message: "Update schedule",
-                content: contentBase64,
-                sha: fileSha
-            })
+            headers: { "Authorization": `token ${state.token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ message: "Update schedule", content: contentBase64, sha: fileSha })
         });
-
         if (!putRes.ok) throw new Error("Put Error");
+        
+        // Абнаўляем кэш пасля паспяховага захавання
+        localStorage.setItem('bsac_cached_schedule', JSON.stringify(scheduleData));
         alert(t('successSave'));
     } catch (e) {
         alert(t('errorSave') + e.message);
@@ -501,14 +535,12 @@ async function saveToGithub() {
     }
 }
 
-// == АЎТАРЫЗАЦЫЯ І HASH ==
 async function sha256(str) {
     const buf = new TextEncoder().encode(str);
     const hash = await crypto.subtle.digest('SHA-256', buf);
     return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-// Лагін
 const loginModal = document.getElementById('adminModal');
 const logoutModal = document.getElementById('logoutModal');
 const logo = document.getElementById('secretLogo');
@@ -529,7 +561,6 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const token = document.getElementById('apiTokenInput').value.trim();
     const hash = await sha256(SALT + token);
-    
     if (hash === TARGET_HASH) {
         state.isAdmin = true;
         state.token = token;
@@ -552,13 +583,8 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     renderSchedule(state.group);
 });
 
-// Закрыццё крэсцікам
 document.querySelectorAll('.close-btn').forEach(btn => {
     btn.onclick = function() { this.closest('.modal').classList.add('hidden'); }
 });
 
-// Запуск
 initApp();
-
-// Хэлпер для генерацыі
-window.generateHash = async (t) => console.log(await sha256(SALT + t));

@@ -1,3 +1,5 @@
+/* style.css */
+
 /* == ПЕРАМЕННЫЯ (КАЛЕРАВАЯ ПАЛІТРА) == */
 :root {
     /* Светлая тэма */
@@ -110,7 +112,6 @@ button {
     outline: none;
 }
 
-/* Эфект націскання для ўсіх кнопак */
 button:active { transform: translateY(1px); }
 
 /* Празрыстыя кнопкі (у хэдэры) */
@@ -132,7 +133,7 @@ button:active { transform: translateY(1px); }
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 .login-btn:hover, .global-save-btn:hover, .btn-save:hover, .btn-add:hover {
-    background-color: #219150; /* Крыху цямней */
+    background-color: #219150;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     transform: translateY(-1px);
 }
@@ -142,7 +143,7 @@ button:active { transform: translateY(1px); }
     background-color: var(--accent-danger);
     color: white;
 }
-.btn-cancel { background-color: #7f8c8d; } /* Шэры для адмены */
+.btn-cancel { background-color: #7f8c8d; }
 
 .btn-delete:hover, .logout-color:hover { background-color: #c0392b; transform: translateY(-1px); }
 .btn-cancel:hover { background-color: #95a5a6; }
@@ -160,7 +161,7 @@ button:active { transform: translateY(1px); }
     margin-bottom: 20px;
     padding: 12px;
     font-size: 1.1rem;
-    background-color: #8e44ad; /* Фіялетавы */
+    background-color: #8e44ad;
 }
 .global-save-btn:hover { background-color: #732d91; }
 
@@ -179,16 +180,48 @@ select, input {
 
 select:focus, input:focus {
     border-color: var(--input-focus);
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); /* Свячэнне */
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
 }
 
-/* Кастомны выгляд Select */
-.group-selector { display: flex; flex-direction: column; align-items: flex-end; }
-.group-selector label { font-size: 0.85rem; color: rgba(255,255,255,0.8); margin-bottom: 3px; }
-select { cursor: pointer; min-width: 150px; }
+/* -- АБНОЎЛЕНЫ GROUP SELECTOR (ДЛЯ 2-х спісаў) -- */
+.group-selector { 
+    display: flex; 
+    flex-direction: row; /* У адзін радок */
+    align-items: center; 
+    gap: 10px; 
+}
+
+.group-selector label { 
+    font-size: 0.85rem; 
+    color: rgba(255,255,255,0.8); 
+    margin-right: 2px;
+    display: none; /* Хаваем лэйблы для кампактнасці, калі хочаце */
+}
+/* Паказваем лэйблы толькі калі месца шмат (на ПК) */
+@media (min-width: 800px) {
+    .group-selector label { display: inline-block; }
+}
+
+select { cursor: pointer; }
+#subgroupSelect { min-width: 70px; }
+#groupSelect { min-width: 130px; }
+
 
 /* == РАСКЛАД (MAIN) == */
 main { padding: 20px; max-width: 1000px; margin: 0 auto; }
+
+/* Афлайн індыкатар */
+#offlineBadge {
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 20px;
+    background-color: rgba(231, 76, 60, 0.1);
+    color: var(--accent-danger);
+    border: 1px solid var(--accent-danger);
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.95rem;
+}
 
 .placeholder {
     text-align: center;
@@ -204,7 +237,7 @@ main { padding: 20px; max-width: 1000px; margin: 0 auto; }
     background-color: var(--bg-card);
     margin-bottom: 25px;
     border-radius: 12px;
-    overflow: hidden; /* Каб вуглы не вылазілі */
+    overflow: hidden;
     box-shadow: var(--shadow-card);
     transition: box-shadow 0.3s;
 }
@@ -231,16 +264,14 @@ th, td {
 }
 tr:last-child td { border-bottom: none; }
 
-/* Слупок часу */
 .time-col {
     width: 130px;
     font-weight: 700;
     color: var(--text-secondary);
-    font-feature-settings: "tnum"; /* Монашырынныя лічбы */
+    font-feature-settings: "tnum";
     border-right: 1px solid var(--border-color);
 }
 
-/* Ячэйка з парай */
 .week-split {
     padding: 8px 0;
     border-bottom: 1px dashed var(--border-color);
@@ -252,8 +283,8 @@ tr:last-child td { border-bottom: none; }
 .details { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 2px; }
 .location { font-size: 0.9rem; font-style: italic; color: var(--accent-warn); font-weight: 500; }
 
-/* Бэйджы тыдняў */
-.week-badge {
+/* -- БЭЙДЖЫ -- */
+.week-badge, .subgroup-badge {
     display: inline-block;
     padding: 2px 8px;
     border-radius: 12px;
@@ -261,9 +292,16 @@ tr:last-child td { border-bottom: none; }
     font-weight: bold;
     text-transform: uppercase;
     margin-bottom: 4px;
+    margin-right: 5px;
 }
 .week-odd { background-color: var(--week-odd-bg); color: var(--week-odd-text); }
 .week-even { background-color: var(--week-even-bg); color: var(--week-even-text); }
+
+/* Колеры для падгруп */
+.subgroup-badge { color: white; vertical-align: middle; }
+.sg-1 { background-color: #e67e22; } /* Аранжавы */
+.sg-2 { background-color: #9b59b6; } /* Фіялетавы */
+
 
 /* Пусты слот */
 .empty-slot {
@@ -301,8 +339,8 @@ body.dark-theme .empty-slot { background: rgba(255,255,255,0.03); }
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.6); /* Цёмнае зацяненне */
-    backdrop-filter: blur(5px); /* Эфект размыцця фону */
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -352,82 +390,51 @@ body.dark-theme .empty-slot { background: rgba(255,255,255,0.03); }
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Адаптыўнасць для мабільных */
+.hidden { visibility: hidden; }
+
+/* == АДАПТЫЎНАСЦЬ (МАБІЛЬНЫЯ) == */
 @media (max-width: 600px) {
     header { flex-direction: column; padding: 15px; }
     .header-left { margin-bottom: 10px; }
+    
     .controls-area { width: 100%; justify-content: center; }
     .settings-btns { width: 100%; display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; }
-    .group-selector { width: 100%; align-items: stretch; }
-    select { width: 100%; }
+    
+    /* Адаптыўнасць для падвойнага селектара */
+    .group-selector { 
+        width: 100%; 
+        justify-content: center;
+    }
+    .group-selector select {
+        /* Каб на тэлефоне селектары былі шырэйшыя і зручнейшыя */
+        flex: 1; 
+    }
     
     th, td { padding: 12px 10px; }
     .time-col { width: 90px; font-size: 0.85rem; }
 }
 
-.hidden {
-    visibility: hidden;
-}
-
-/* == АДАПТИВ ДЛЯ МАЛЕНЬКИХ ЭКРАНОВ (< 380px) == */
+/* == АДАПТЫЎ ДЛЯ МАЛЕНЬКІХ ЭКРАНАЎ (< 700px) == */
+/* Ператвараем табліцу ў карткі */
 @media (max-width: 700px) {
-
-    /* 1. Уменьшаем отступы и шрифты */
-    body {
-        font-size: 14px; /* Чуть меньше базовый шрифт */
-    }
-    main {
-        padding: 10px; /* Меньше отступы по краям */
-    }
+    body { font-size: 14px; }
+    main { padding: 10px; }
     
-    /* 2. Компактный Header */
-    header {
-        padding: 10px;
-        gap: 10px;
-    }
-    .header-left {
-        width: 100%;
-        justify-content: center; /* Логотип по центру */
-        margin-bottom: 5px;
-    }
-    .logo {
-        height: 35px; /* Уменьшаем логотип */
-    }
-    header h1 {
-        font-size: 1.1rem; /* Уменьшаем заголовок */
-    }
+    header { padding: 10px; gap: 10px; }
+    .header-left { width: 100%; justify-content: center; margin-bottom: 5px; }
+    .logo { height: 35px; }
+    header h1 { font-size: 1.1rem; }
     
-    /* 3. Уплотняем кнопки управления */
-    .controls-area {
-        gap: 5px;
-        justify-content: space-between;
-    }
-    .settings-btns {
-        margin-bottom: 0; /* Убираем лишний отступ */
-        gap: 5px;
-    }
-    .group-selector {
-        width: 100%;
-        margin-top: 10px;
-    }
-    select {
-        width: 100%;
-        padding: 6px;
-    }
-    button {
-        padding: 6px 10px;
-        font-size: 0.85rem;
-    }
+    .controls-area { gap: 5px; justify-content: space-between; }
+    .settings-btns { margin-bottom: 0; gap: 5px; }
+    .group-selector { width: 100%; margin-top: 10px; }
+    
+    select { padding: 6px; }
+    button { padding: 6px 10px; font-size: 0.85rem; }
 
-    /* 4. ГЛАВНОЕ: Превращаем Таблицу в Карточки */
-    /* Делаем все элементы таблицы блочными */
-    table, tbody, tr, td {
-        display: block;
-        width: 100%;
-        min-width: 0; /* Сбрасываем ограничение */
-    }
+    /* Табліца -> Блокі */
+    table, tbody, tr, td { display: block; width: 100%; min-width: 0; }
 
-    /* Карточка (бывшая строка таблицы) */
     tr {
         margin-bottom: 15px;
         border: 1px solid var(--border-color);
@@ -436,42 +443,26 @@ body.dark-theme .empty-slot { background: rgba(255,255,255,0.03); }
         background: var(--bg-card);
         overflow: hidden;
     }
-    /* Убираем последнюю линию, так как у нас теперь карточки */
-    tr:last-child td {
-        border-bottom: none;
-    }
+    tr:last-child td { border-bottom: none; }
 
-    /* Время (делаем как заголовок карточки) */
     .time-col {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid var(--border-color);
-        background-color: var(--hover-bg); /* Слегка серый фон */
+        background-color: var(--hover-bg);
         color: var(--accent-primary);
         font-weight: 800;
         text-align: center;
         padding: 8px;
     }
 
-    /* Содержимое пары */
     td:not(.time-col) {
         padding: 12px;
-        text-align: center; /* Центрируем текст предмета */
+        text-align: center;
     }
 
-    /* Элементы внутри пары */
-    .subject {
-        font-size: 1rem;
-        margin-bottom: 4px;
-    }
-    .week-badge {
-        font-size: 0.7rem;
-        margin-bottom: 6px;
-    }
+    .subject { font-size: 1rem; margin-bottom: 4px; }
+    .week-badge { font-size: 0.7rem; margin-bottom: 6px; }
     
-    /* 5. Модальные окна */
-    .modal-content {
-        width: 95%;
-        padding: 20px 15px;
-    }
+    .modal-content { width: 95%; padding: 20px 15px; }
 }
