@@ -3,7 +3,7 @@
   "appName": "BSAC Расклад",
   "webDir": "www",
   "server": {
-    "url": "https://ffourtytwot.github.io/bsac-schedule/", 
+    "url": "https://ffourtytwot.github.io/bsac-schedule/www/", 
     "cleartext": true
   },
   "android": {
