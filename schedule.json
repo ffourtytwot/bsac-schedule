@@ -223,7 +223,8 @@
         "subject": "Иностранный язык (ПЗ)",
         "teacher": "Игнатьева Е.М.",
         "room": "214/312",
-        "num_subgroup": 0
+        "num_subgroup": 2,
+        "weeks": ""
       },
       {
         "time": "14:10-15:50",
