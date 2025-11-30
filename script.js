@@ -1,5 +1,3 @@
-// script.js
-
 // == НАЛАДЫ ==
 const REPO_OWNER = "ffourtytwot";       
 const REPO_NAME = "bsac-schedule";     
@@ -104,7 +102,7 @@ let state = {
     lang: 'ru',
     theme: 'light',
     group: '',
-    subgroup: '0', // 0 = Усе, 1 = 1-я, 2 = 2-я
+    subgroup: '0', 
     isAdmin: false,
     token: ''
 };
@@ -114,7 +112,6 @@ const daysOrder = ["Понедельник", "Вторник", "Среда", "Ч
 
 // == 1. ІНІЦЫЯЛІЗАЦЫЯ І КЭШ ==
 async function initApp() {
-    // 1. Чытаем налады
     const cachedSettings = localStorage.getItem('bsac_settings');
     if (cachedSettings) {
         const parsed = JSON.parse(cachedSettings);
@@ -124,7 +121,6 @@ async function initApp() {
         state.subgroup = parsed.subgroup || '0';
     }
 
-    // 2. Чытаем токен
     const savedToken = localStorage.getItem('bsac_gh_token');
     if (savedToken) {
         const checkHash = await sha256(SALT + savedToken);
@@ -135,13 +131,11 @@ async function initApp() {
         }
     }
 
-    // 3. UI
     applyTheme();
     applyLang();
     document.getElementById('groupSelect').value = state.group;
     document.getElementById('subgroupSelect').value = state.subgroup;
 
-    // 4. ЗАГРУЗКА (Інтэрнэт -> Кэш -> Памылка)
     const offlineBadge = document.getElementById('offlineBadge');
     
     try {
@@ -149,14 +143,11 @@ async function initApp() {
         if (!response.ok) throw new Error("HTTP " + response.status);
         
         scheduleData = await response.json();
-        
-        // Поспех -> захоўваем у кэш
         localStorage.setItem('bsac_cached_schedule', JSON.stringify(scheduleData));
         if(offlineBadge) offlineBadge.classList.add('hidden');
         
     } catch (e) {
-        console.warn("Offline/Error:", e);
-        // Памылка -> чытаем з кэша
+        console.warn("Offline:", e);
         const cachedData = localStorage.getItem('bsac_cached_schedule');
         if (cachedData) {
             scheduleData = JSON.parse(cachedData);
@@ -186,7 +177,7 @@ function t(key) {
     return translations[state.lang][key] || key;
 }
 
-// == UI HANDLERS ==
+// == UI ==
 const themeBtn = document.getElementById('themeBtn');
 const langBtn = document.getElementById('langBtn');
 const groupSelect = document.getElementById('groupSelect');
@@ -230,7 +221,7 @@ function applyLang() {
     });
 }
 
-// == РЭНДЭРЫНГ (АСНОЎНАЯ ЛОГІКА) ==
+// == РЭНДЭРЫНГ ==
 function renderSchedule(group) {
     const container = document.getElementById('scheduleContainer');
     const offlineNode = document.getElementById('offlineBadge');
@@ -248,6 +239,7 @@ function renderSchedule(group) {
     }
 
     daysOrder.forEach(dayKey => {
+        const dayLessons = data[dayKey] || [];
         const dayBlock = document.createElement('div');
         dayBlock.className = 'schedule-day';
 
@@ -257,86 +249,168 @@ function renderSchedule(group) {
         dayBlock.appendChild(dayTitle);
 
         const table = document.createElement('table');
-        const dayLessons = data[dayKey] || [];
+        let visibleRowsCount = 0;
 
         TIME_SLOTS.forEach((timeSlot) => {
             const row = document.createElement('tr');
             
-            // 1. ЧАС
             const timeCol = document.createElement('td');
             timeCol.className = 'time-col';
             timeCol.textContent = timeSlot;
             row.appendChild(timeCol);
 
-            // 2. ІНФАРМАЦЫЯ
             const infoCol = document.createElement('td');
             
-            // Знаходзім УСЕ пары на гэты час
-            // Захоўваем realIndex, каб потым карэктна рэдагаваць
+            // Атрымліваем пары на гэты час
             const slotLessons = dayLessons.map((l, index) => ({...l, realIndex: index}))
                                           .filter(l => l.time === timeSlot);
 
             const currentSg = parseInt(state.subgroup) || 0;
-
-            // А. Ёсць агульная пара (0) -> яна займае ўвесь слот
             const commonLesson = slotLessons.find(l => (parseInt(l.num_subgroup) || 0) === 0);
+            
+            let hasContent = false;
+            let countSg1 = 0;
+            let countSg2 = 0;
 
+            // 1. АДЛЮСТРАВАННЕ ЗАНЯТКАЎ
             if (commonLesson) {
                 renderSingleLessonBlock(infoCol, commonLesson, group, dayKey, commonLesson.realIndex);
-            } 
-            else {
-                // Б. Разбіўка па падгрупах (1 і 2)
+                hasContent = true;
+            } else {
                 const sg1Lessons = slotLessons.filter(l => parseInt(l.num_subgroup) === 1);
                 const sg2Lessons = slotLessons.filter(l => parseInt(l.num_subgroup) === 2);
+                
+                countSg1 = sg1Lessons.length;
+                countSg2 = sg2Lessons.length;
 
                 const showSg1 = (currentSg === 0 || currentSg === 1);
                 const showSg2 = (currentSg === 0 || currentSg === 2);
 
-                let hasContent = false;
-
-                // 1-я Падгрупа
-                if (showSg1) {
-                    if (sg1Lessons.length > 0) {
-                        sg1Lessons.forEach(l => {
-                            renderLessonAsSplit(infoCol, l, group, dayKey, l.realIndex);
-                            hasContent = true;
-                        });
-                    } else if (state.isAdmin && currentSg !== 2) {
-                        // Калі пуста, але мы хочам бачыць 1-ю (і мы Адмін)
-                        renderAddButtonMini(infoCol, group, dayKey, timeSlot, 1);
-                        hasContent = true; 
-                    }
-                }
-
-                // 2-я Падгрупа
-                if (showSg2) {
-                    if (sg2Lessons.length > 0) {
-                        sg2Lessons.forEach(l => {
-                            renderLessonAsSplit(infoCol, l, group, dayKey, l.realIndex);
-                            hasContent = true;
-                        });
-                    } else if (state.isAdmin && currentSg !== 1) {
-                        renderAddButtonMini(infoCol, group, dayKey, timeSlot, 2);
+                if (showSg1 && countSg1 > 0) {
+                    sg1Lessons.forEach(l => {
+                        renderLessonAsSplit(infoCol, l, group, dayKey, l.realIndex);
                         hasContent = true;
-                    }
+                    });
                 }
 
-                // Калі наогул пуста
-                if (!hasContent) {
-                    renderEmptySlot(infoCol, group, dayKey, timeSlot, currentSg);
+                if (showSg2 && countSg2 > 0) {
+                    sg2Lessons.forEach(l => {
+                        renderLessonAsSplit(infoCol, l, group, dayKey, l.realIndex);
+                        hasContent = true;
+                    });
                 }
             }
 
-            row.appendChild(infoCol);
-            table.appendChild(row);
+            // 2. КНОПКА ДАДАННЯ (ТОЛЬКІ ДЛЯ АДМІНА)
+            // Умова: калі няма агульнай пары, і хоць адна з падгруп свабодная
+            // А таксама калі карыстальнік выбраў пэўную падгрупу, і яна пустая
+            if (state.isAdmin) {
+                let needAddButton = false;
+
+                if (!commonLesson) {
+                    // Калі мы глядзім "Усе"
+                    if (currentSg === 0) {
+                        // Калі свабодна ў 1-й АБО ў 2-й - даем магчымасць дадаць
+                        if (countSg1 === 0 || countSg2 === 0) needAddButton = true;
+                    } 
+                    // Калі мы глядзім "п/г 1"
+                    else if (currentSg === 1 && countSg1 === 0) {
+                        needAddButton = true;
+                    }
+                    // Калі мы глядзім "п/г 2"
+                    else if (currentSg === 2 && countSg2 === 0) {
+                        needAddButton = true;
+                    }
+                }
+
+                if (needAddButton) {
+                    renderGenericAddButton(infoCol, group, dayKey, timeSlot);
+                    // Калі мы дадаем кнопку, значыць радок павінен быць бачны
+                    hasContent = true; 
+                }
+            }
+
+            // 3. ВЫРАШАЕМ, ЦІ ПАКАЗВАЦЬ РАДОК
+            if (hasContent) {
+                row.appendChild(infoCol);
+                table.appendChild(row);
+                visibleRowsCount++;
+            }
         });
+
+        // Калі дзень пусты
+        if (visibleRowsCount === 0) {
+            const emptyRow = document.createElement('tr');
+            const emptyCell = document.createElement('td');
+            emptyCell.colSpan = 2;
+            emptyCell.style.textAlign = "center";
+            emptyCell.style.padding = "20px";
+            emptyCell.style.color = "var(--text-secondary)";
+            emptyCell.style.fontStyle = "italic";
+            emptyCell.textContent = "🏖️ " + (state.lang === 'be' ? "Выхадны" : "Выходной");
+            emptyRow.appendChild(emptyCell);
+            table.appendChild(emptyRow);
+        }
 
         dayBlock.appendChild(table);
         container.appendChild(dayBlock);
     });
 }
 
-// Дапаможная: Агульная пара
+// Агульная кнопка "Дадаць"
+function renderGenericAddButton(container, group, dayKey, timeSlot) {
+    const div = document.createElement('div');
+    div.className = 'week-split empty-slot';
+    div.style.padding = "5px";
+    
+    const btn = document.createElement('button');
+    btn.className = 'btn-add';
+    btn.textContent = t('btnAdd'); // Проста "Дадаць"
+    
+    // Пры кліку мы выклікаем smart-функцыю
+    btn.onclick = () => addNewLessonSmart(group, dayKey, timeSlot);
+    
+    div.appendChild(btn);
+    container.appendChild(div);
+}
+
+// Разумнае даданне (вызначае свабодную падгрупу)
+function addNewLessonSmart(group, dayKey, timeSlot) {
+    if (!scheduleData[group]) scheduleData[group] = {};
+    if (!scheduleData[group][dayKey]) scheduleData[group][dayKey] = [];
+
+    const existing = scheduleData[group][dayKey].filter(l => l.time === timeSlot);
+    
+    // Логіка па змаўчанні
+    let targetSg = 0; // Па змаўчанні агульная
+
+    // Калі ўжо ёсць пара ў п/г 1, новую робім п/г 2
+    if (existing.some(l => parseInt(l.num_subgroup) === 1)) {
+        targetSg = 2;
+    } 
+    // Калі ўжо ёсць пара ў п/г 2, новую робім п/г 1
+    else if (existing.some(l => parseInt(l.num_subgroup) === 2)) {
+        targetSg = 1;
+    }
+    // Калі выбрана канкрэтная падгрупа ў фільтры зверху, выкарыстоўваем яе
+    else if (parseInt(state.subgroup) !== 0) {
+        targetSg = parseInt(state.subgroup);
+    }
+
+    const newLesson = {
+        time: timeSlot,
+        subject: "Новый предмет",
+        teacher: "",
+        room: "",
+        weeks: "",
+        num_subgroup: targetSg
+    };
+    
+    scheduleData[group][dayKey].push(newLesson);
+    renderSchedule(group);
+}
+
+
 function renderSingleLessonBlock(container, lesson, group, dayKey, index) {
     if (lesson.multi) {
         lesson.content.forEach((sub, subIdx) => {
@@ -352,18 +426,14 @@ function renderSingleLessonBlock(container, lesson, group, dayKey, index) {
     }
 }
 
-// Дапаможная: Пара ў падгрупе (Стылізаваная)
 function renderLessonAsSplit(container, lesson, group, dayKey, index) {
-    // Колеры: 1 = Аранжавы, 2 = Фіялетавы
     const borderStyle = lesson.num_subgroup == 1 ? "4px solid #e67e22" : "4px solid #9b59b6";
-
     if (lesson.multi) {
         lesson.content.forEach((sub, subIdx) => {
              const div = document.createElement('div');
              div.className = 'week-split'; 
              div.style.borderLeft = borderStyle;
              div.style.paddingLeft = "8px";
-             
              div.innerHTML = generateLessonHTML({...sub, num_subgroup: lesson.num_subgroup}); 
              if (state.isAdmin) div.appendChild(createAdminControls(group, dayKey, index, subIdx));
              container.appendChild(div);
@@ -373,45 +443,9 @@ function renderLessonAsSplit(container, lesson, group, dayKey, index) {
         div.className = 'week-split';
         div.style.borderLeft = borderStyle;
         div.style.paddingLeft = "8px";
-        
         div.innerHTML = generateLessonHTML(lesson);
         if (state.isAdmin) div.appendChild(createAdminControls(group, dayKey, index, null));
         container.appendChild(div);
-    }
-}
-
-// Міні-кнопка для дадання ў пустую падгрупу
-function renderAddButtonMini(container, group, dayKey, timeSlot, subgroupNum) {
-    const div = document.createElement('div');
-    div.className = 'week-split empty-slot';
-    div.style.padding = "5px";
-    div.style.borderLeft = "2px dashed #ccc";
-    
-    const btn = document.createElement('button');
-    btn.className = 'btn-add';
-    btn.textContent = `➕ ${t('lblSgShort')}${subgroupNum}`;
-    btn.style.fontSize = "0.75rem";
-    btn.style.opacity = "0.8";
-    
-    btn.onclick = () => addNewLesson(group, dayKey, timeSlot, subgroupNum);
-    
-    div.appendChild(btn);
-    container.appendChild(div);
-}
-
-// Пусты слот (вялікі)
-function renderEmptySlot(container, group, dayKey, timeSlot, currentSg) {
-    container.className = 'empty-slot';
-    container.textContent = state.isAdmin ? "" : t('emptySlot');
-    
-    if (state.isAdmin) {
-        const addBtn = document.createElement('button');
-        addBtn.className = 'btn-add';
-        const targetSg = currentSg === 0 ? 0 : currentSg;
-        addBtn.textContent = targetSg === 0 ? t('btnAdd') : `➕ ${t('lblSgShort')}${targetSg}`;
-        
-        addBtn.onclick = () => addNewLesson(group, dayKey, timeSlot, targetSg);
-        container.appendChild(addBtn);
     }
 }
 
@@ -425,8 +459,6 @@ function generateLessonHTML(item) {
 
     let sgText = '';
     const sg = parseInt(item.num_subgroup) || 0;
-    // Паказваем бэйдж, толькі калі гэта не відавочна з кантэксту (напрыклад у рэжыме "Усе" можна не паказваць, бо ёсць колер)
-    // Але для пэўнасці пакінем
     if (sg > 0) {
         sgText = `<span class="subgroup-badge sg-${sg}">${t('lblSgShort')}${sg}</span>`;
     }
@@ -442,7 +474,7 @@ function generateLessonHTML(item) {
     `;
 }
 
-// == КІРАВАННЕ (АДМІН) ==
+// == КІРАВАННЕ ==
 function createAdminControls(group, dayKey, index, subIndex) {
     const div = document.createElement('div');
     div.className = 'admin-controls';
@@ -460,23 +492,6 @@ function createAdminControls(group, dayKey, index, subIndex) {
     div.appendChild(btnEdit);
     div.appendChild(btnDel);
     return div;
-}
-
-function addNewLesson(group, dayKey, timeSlot, subgroupNum = 0) {
-    if (!scheduleData[group]) scheduleData[group] = {};
-    if (!scheduleData[group][dayKey]) scheduleData[group][dayKey] = [];
-
-    const newLesson = {
-        time: timeSlot,
-        subject: "Новый",
-        teacher: "",
-        room: "",
-        weeks: "",
-        num_subgroup: subgroupNum 
-    };
-    
-    scheduleData[group][dayKey].push(newLesson);
-    renderSchedule(group);
 }
 
 function deleteLesson(group, dayKey, index, subIndex) {
@@ -503,10 +518,8 @@ function editLesson(group, dayKey, index, subIndex) {
     }
 
     const btn = window.event.target;
-    // Шукаем бліжэйшы кантэйнер
     const container = btn.closest('.week-split') || btn.closest('td');
     
-    // Бягучая падгрупа
     const currentSg = targetLesson.num_subgroup || 0;
 
     container.innerHTML = `
