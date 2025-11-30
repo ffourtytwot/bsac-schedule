@@ -5,6 +5,10 @@ on:
     branches:
       - main
       - master
+    paths-ignore:
+      - 'www/schedule.json'   # Ігнараваць гэты файл
+      - 'README.md'           # І дакументацыю
+
 
 jobs:
   build:
