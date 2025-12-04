@@ -393,15 +393,25 @@ async function sendLocalNotification() {
 
 
 // ==========================================
-// 8. РЭНДЭРЫНГ РАСКЛАДУ (АСНОЎНАЯ ЛОГІКА)
+// 8. РЭНДЭРЫНГ РАСКЛАДУ (Абноўлены)
 // ==========================================
+
+function getLessonType(subject) {
+    if (!subject) return "";
+    const s = subject.toLowerCase();
+    if (s.includes("(лк)") || s.includes("лекция")) return "type-lk";
+    if (s.includes("(пз)") || s.includes("практи")) return "type-pz";
+    if (s.includes("(лр)") || s.includes("лабора")) return "type-lr";
+    if (s.includes("экзамен") || s.includes("зачет")) return "type-ex";
+    return "";
+}
+
 function renderSchedule(group) {
     const container = document.getElementById('scheduleContainer');
     const offlineNode = document.getElementById('offlineBadge');
     
     container.innerHTML = '';
     
-    // Калі афлайн, пакідаем бэйдж
     if(offlineNode && !offlineNode.classList.contains('hidden')) {
         container.appendChild(offlineNode);
     }
@@ -416,7 +426,7 @@ function renderSchedule(group) {
 
     const data = scheduleData[group] || {}; 
 
-    // Кнопка Global Save (толькі для Адміна)
+    // Кнопка глабальнага захавання
     if (state.isAdmin) {
         const saveBtn = document.createElement('button');
         saveBtn.className = 'global-save-btn';
@@ -448,62 +458,67 @@ function renderSchedule(group) {
 
             const infoCol = document.createElement('td');
             
-            // Атрымліваем урокі на гэты час
+            // Усе ўрокі на гэты час
             const slotLessons = dayLessons.map((l, index) => ({...l, realIndex: index}))
                                           .filter(l => l.time === timeSlot);
 
-            const currentSg = parseInt(state.subgroup) || 0; // 0 = Усе
-            
-            // Фільтрацыя і адлюстраванне
+            const userSg = parseInt(state.subgroup) || 0; // 0 = Усе
             let hasContent = false;
-            let displayedLessons = [];
 
-            // Калі ёсць агульная пара (num_subgroup == 0)
-            const commonLesson = slotLessons.find(l => (parseInt(l.num_subgroup) || 0) === 0);
+            // Лагічныя кантэйнеры для рэндэрынгу: [Агульныя, ПГ1, ПГ2]
+            // Мы будзем запаўняць іх, а потым правяраць, ці ёсць свабодныя тыдні
             
-            if (commonLesson) {
-                displayedLessons.push(commonLesson);
-            } else {
-                // Калі пары па падгрупах
-                const sg1Lessons = slotLessons.filter(l => parseInt(l.num_subgroup) === 1);
-                const sg2Lessons = slotLessons.filter(l => parseInt(l.num_subgroup) === 2);
+            const subgroupsMap = {
+                0: [], // Агульныя (для ўсёй групы)
+                1: [], // 1 падгрупа
+                2: []  // 2 падгрупа
+            };
 
-                const showSg1 = (currentSg === 0 || currentSg === 1);
-                const showSg2 = (currentSg === 0 || currentSg === 2);
+            slotLessons.forEach(l => {
+                const sg = parseInt(l.num_subgroup) || 0;
+                if (subgroupsMap[sg]) subgroupsMap[sg].push(l);
+            });
 
-                if (showSg1) displayedLessons = displayedLessons.concat(sg1Lessons);
-                if (showSg2) displayedLessons = displayedLessons.concat(sg2Lessons);
-            }
+            // Якія падгрупы паказваць?
+            const showSg1 = (userSg === 0 || userSg === 1);
+            const showSg2 = (userSg === 0 || userSg === 2);
 
-            // РЭНДЭРЫНГ УРОКАЎ У ЯЧЭЙЦЫ
-            if (displayedLessons.length > 0) {
-                displayedLessons.forEach(lesson => {
+            // === ФУНКЦЫЯ РЭНДЭРЫНГУ СЛУПКА (Падгрупы) ===
+            const renderSubgroupColumn = (sgId) => {
+                const lessons = subgroupsMap[sgId];
+                const usedWeeks = new Set();
+                
+                // Рэндэрым існуючыя пары
+                lessons.forEach(lesson => {
                     const div = document.createElement('div');
                     div.className = 'week-split';
                     
-                    // Стылізацыя мяжы злева
-                    if (lesson.num_subgroup === 1) div.style.borderLeft = "4px solid #e67e22";
-                    else if (lesson.num_subgroup === 2) div.style.borderLeft = "4px solid #9b59b6";
-                    else div.style.borderLeft = "4px solid transparent"; // Агульная
+                    // Вызначаем тып пары для колеру
+                    const typeClass = getLessonType(lesson.subject);
+                    if (typeClass) div.classList.add(typeClass);
+
+                    // Калі тып не вызначаны, ставім стары колер мяжы для падгруп
+                    if (!typeClass) {
+                        if (lesson.num_subgroup === 1) div.style.borderLeft = "5px solid #e67e22";
+                        else if (lesson.num_subgroup === 2) div.style.borderLeft = "5px solid #9b59b6";
+                        else div.style.borderLeft = "5px solid transparent";
+                    }
+
+                    // Падсветка бягучага тыдня
+                    const isCurrentWeek = checkWeekMatch(lesson.weeks);
+                    if (!isCurrentWeek) {
+                        div.style.opacity = "0.5";
+                        div.style.filter = "grayscale(0.8)";
+                    } else {
+                        // Калі тыдзень супадае, дадаем лёгкі фон, калі яшчэ няма
+                        if (!typeClass) div.style.backgroundColor = (state.theme === 'dark') ? 'rgba(39, 174, 96, 0.15)' : 'rgba(39, 174, 96, 0.08)';
+                    }
                     
                     div.style.paddingLeft = "8px";
 
-                    // ЛОГІКА ПАДСВЕТКІ ТЫДНЯ
-                    const isCurrentWeek = checkWeekMatch(lesson.weeks);
-                    if (isCurrentWeek) {
-                        // Актыўная пара
-                        div.style.backgroundColor = (state.theme === 'dark') ? 'rgba(39, 174, 96, 0.15)' : 'rgba(39, 174, 96, 0.08)';
-                        if (lesson.num_subgroup === 0) div.style.borderLeft = "4px solid var(--accent-success)";
-                    } else {
-                        // Пара не на гэтым тыдні -> робім напаўпразрыстай
-                        div.style.opacity = "0.5";
-                        div.style.filter = "grayscale(0.8)";
-                    }
-
-                    // Генерацыя HTML
+                    // Рэндэрым HTML
                     if (lesson.multi) {
-                        // Складаны выпадак (multi), рэдка выкарыстоўваецца, але падтрымаем
-                        lesson.content.forEach((sub, subIdx) => {
+                         lesson.content.forEach((sub, subIdx) => {
                              const subDiv = document.createElement('div');
                              subDiv.innerHTML = generateLessonHTML({...sub, num_subgroup: lesson.num_subgroup});
                              if(state.isAdmin) subDiv.appendChild(createAdminControls(group, dayKey, lesson.realIndex, subIdx));
@@ -516,26 +531,42 @@ function renderSchedule(group) {
                     
                     infoCol.appendChild(div);
                     hasContent = true;
+
+                    // Запамінаем занятыя тыдні
+                    if (!lesson.weeks) {
+                        [1,2,3,4].forEach(w => usedWeeks.add(w));
+                    } else {
+                        String(lesson.weeks).split(',').forEach(w => usedWeeks.add(parseInt(w.trim())));
+                    }
                 });
+
+                // === ЛОГІКА ДЛЯ АДМІНА: ДАДАЦЬ У ПУСТЫЯ ТЫДНІ ===
+                if (state.isAdmin) {
+                    // Калі ўсе тыдні (1,2,3,4) занятыя - нічога не робім.
+                    // Калі ёсць дзіркі (напрыклад, заняты 1,3, а 2,4 вольныя) - паказваем кнопку.
+                    
+                    if (usedWeeks.size < 4) {
+                        // Вылічваем, якіх тыдняў не хапае (для аўтазапаўнення)
+                        const missingWeeks = [1, 2, 3, 4].filter(x => !usedWeeks.has(x));
+                        const weeksStr = missingWeeks.join(',');
+
+                        renderSpecificAddButton(infoCol, group, dayKey, timeSlot, sgId, weeksStr);
+                        hasContent = true; // Каб радок не схаваўся
+                    }
+                }
+            };
+
+            // 1. Агульныя пары (num_subgroup = 0)
+            renderSubgroupColumn(0);
+
+            // 2. Падгрупа 1 (калі няма агульнай пары, якая займае ўсё)
+            if (subgroupsMap[0].length === 0 && showSg1) {
+                renderSubgroupColumn(1);
             }
 
-            // КНОПКА "ДАДАЦЬ" (ADMIN)
-            if (state.isAdmin) {
-                // Паказваем кнопку, калі пуста, або калі выбрана падгрупа, а ў ёй няма пар
-                let showAdd = false;
-                if (!commonLesson) {
-                    const countSg1 = slotLessons.filter(l => l.num_subgroup==1).length;
-                    const countSg2 = slotLessons.filter(l => l.num_subgroup==2).length;
-                    
-                    if (currentSg === 0 && (countSg1 === 0 || countSg2 === 0)) showAdd = true;
-                    if (currentSg === 1 && countSg1 === 0) showAdd = true;
-                    if (currentSg === 2 && countSg2 === 0) showAdd = true;
-                }
-                
-                if (showAdd) {
-                    renderGenericAddButton(infoCol, group, dayKey, timeSlot);
-                    hasContent = true;
-                }
+            // 3. Падгрупа 2 (калі няма агульнай пары)
+            if (subgroupsMap[0].length === 0 && showSg2) {
+                renderSubgroupColumn(2);
             }
 
             if (hasContent) {
@@ -545,14 +576,14 @@ function renderSchedule(group) {
             }
         });
 
-        // Калі дзень пусты
+        // Пусты дзень
         if (visibleRowsCount === 0) {
             const emptyRow = document.createElement('tr');
             const emptyCell = document.createElement('td');
             emptyCell.colSpan = 2;
+            emptyCell.className = 'empty-day-cell';
             emptyCell.style.textAlign = "center";
             emptyCell.style.padding = "20px";
-            emptyCell.style.color = "var(--text-secondary)";
             emptyCell.textContent = state.lang === 'be' ? "🏖️ Выхадны" : "🏖️ Выходной";
             emptyRow.appendChild(emptyCell);
             table.appendChild(emptyRow);
@@ -563,37 +594,45 @@ function renderSchedule(group) {
     });
 }
 
-// Праверка тыдня (вяртае true, калі пара ідзе зараз)
-function checkWeekMatch(weeksStr) {
-    if (!weeksStr) return true; // Калі тыдні не пазначаны, значыць кожны тыдзень
-    const weeks = String(weeksStr).split(',').map(s => s.trim());
-    return weeks.includes(String(currentAcademicWeek));
-}
-
-function generateLessonHTML(item) {
-    let weekText = '';
-    if (item.weeks) {
-        const w = item.weeks;
-        // Падсвятляем бэйдж тыдня, калі супадае
-        const isActive = checkWeekMatch(w);
-        const style = isActive ? 'background-color:var(--accent-warn);color:#000;' : 'background-color:var(--border-color);color:var(--text-secondary);';
-        
-        weekText = `<span class="week-badge" style="${style}">${t('lblWeeks')} ${w}</span>`;
-    }
+// Новая функцыя для "разумнай" кнопкі дадання
+function renderSpecificAddButton(container, group, dayKey, timeSlot, subgroup, defaultWeeks) {
+    const div = document.createElement('div');
+    div.className = 'week-split empty-slot';
+    div.style.padding = "4px";
+    div.style.marginTop = "4px";
+    div.style.border = "1px dashed var(--border-color)";
+    div.style.fontSize = "0.8rem";
     
-    let sgText = '';
-    const sg = parseInt(item.num_subgroup) || 0;
-    if (sg > 0) {
-        // sg-1 (orange), sg-2 (purple) класы ў style.css
-        sgText = `<span class="subgroup-badge sg-${sg}">${t('lblSgShort')}${sg}</span>`;
-    }
+    // Подпіс, каб было зразумела куды дадаем
+    let sgLabel = "";
+    if (subgroup === 1) sgLabel = " (1 п/г)";
+    if (subgroup === 2) sgLabel = " (2 п/г)";
+    if (subgroup === 0) sgLabel = " (Агульн)";
 
-    return `
-        <div style="margin-bottom:4px;">${sgText}${weekText}</div>
-        <span class="subject">${item.subject}</span>
-        <div class="details">👤 ${item.teacher || '-'}</div>
-        <div class="location">🚪 ${item.room || '-'}</div>
-    `;
+    const btn = document.createElement('button');
+    btn.className = 'btn-add';
+    btn.innerHTML = `${t('btnAdd')} <span style="font-size:0.7em; opacity:0.8;">${sgLabel} [${defaultWeeks}]</span>`;
+    
+    btn.onclick = () => {
+        // Ствараем пару адразу з патрэбнымі тыднямі
+        const newLesson = {
+            time: timeSlot,
+            subject: "Новый предмет",
+            teacher: "",
+            room: "",
+            weeks: defaultWeeks, // Аўтаматычна ставім пустыя тыдні
+            num_subgroup: subgroup
+        };
+        
+        if (!scheduleData[group]) scheduleData[group] = {};
+        if (!scheduleData[group][dayKey]) scheduleData[group][dayKey] = [];
+        
+        scheduleData[group][dayKey].push(newLesson);
+        renderSchedule(group);
+    };
+    
+    div.appendChild(btn);
+    container.appendChild(div);
 }
 
 // ==========================================
