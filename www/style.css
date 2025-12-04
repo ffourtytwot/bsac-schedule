@@ -497,3 +497,16 @@ body.dark-theme .empty-slot { background: rgba(255,255,255,0.03); }
     font-size: 0.7rem;
     vertical-align: middle;
 }
+
+/* Кнопка апавяшчэнняў */
+#notifyBtn {
+    transition: all 0.3s ease;
+}
+
+/* Актыўны стан (калі ўключана) */
+#notifyBtn.active {
+    background-color: rgba(241, 196, 15, 0.2); /* Лёгкі жоўты фон */
+    color: #f1c40f; /* Залаты званочак */
+    border-color: #f1c40f;
+    box-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
+}

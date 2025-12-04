@@ -149,8 +149,7 @@ async function initApp() {
     applyTheme();
     applyLang();
 
-    // Запуск Firebase
-    initFirebase();
+    checkNotificationStatus();
 
     await loadScheduleData();
     
@@ -164,51 +163,45 @@ window.addEventListener('DOMContentLoaded', initApp);
 // 5. FIREBASE INTEGRATION
 // ==========================================
 function initFirebase() {
-    // Праверка, ці падключаны скрыпты ў HTML
-    if (typeof firebase === 'undefined') {
-        console.warn("Firebase SDK not loaded via HTML.");
-        return;
-    }
+    // Калі бібліятэка не загрузілася
+    if (typeof firebase === 'undefined') return;
 
     try {
-        // Правяраем, ці ўжо ініцыялізаваны (каб не было памылак пры hot-reload)
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         
         const messaging = firebase.messaging();
 
-        // Запытваем права на паведамленні
-        Notification.requestPermission().then((permission) => {
-            if (permission === 'granted') {
-                console.log('Notification permission granted.');
-                
-                // Атрымліваем токен (для тэстаў)
-                messaging.getToken().then((currentToken) => {
-                    if (currentToken) {
-                        console.log('FCM Token:', currentToken);
-                        if(state.isAdmin) alert("Admin Token (Check Console)");
-                    }
-                }).catch((err) => {
-                    console.log('An error occurred while retrieving token. ', err);
-                });
-            }
-        });
+        // Спрабуем атрымаць токен (гэта момант ісціны для GApps)
+        messaging.getToken()
+            .then((currentToken) => {
+                if (currentToken) {
+                    console.log('🔥 Firebase Token:', currentToken);
+                    // Калі мы тут - значыць GApps ёсць і працуюць!
+                } else {
+                    console.warn('No registration token available.');
+                }
+            })
+            .catch((err) => {
+                // Вось сюды трапіць LineageOS без GApps
+                console.warn('⚠️ Push notifications failed (No GApps?):', err);
+                console.log('✅ Пераход на лакальны рэжым праверкі (polling).');
+            });
 
-        // Апрацоўка паведамленняў, калі сайт адкрыты
+        // Апрацоўка паведамленняў (калі сайт адкрыты)
         messaging.onMessage((payload) => {
-            console.log('Message received. ', payload);
+            console.log('Message received: ', payload);
             const title = payload.notification.title;
             const options = {
                 body: payload.notification.body,
                 icon: 'logo.png'
             };
-            // Проста паказваем alert або сістэмнае апавяшчэнне
             new Notification(title, options);
         });
 
     } catch (e) {
-        console.error("Firebase init error:", e);
+        console.error("Firebase init error (Critical):", e);
     }
 }
 
@@ -865,3 +858,44 @@ document.getElementById('logoutBtn')?.addEventListener('click', () => {
 document.querySelectorAll('.close-btn').forEach(btn => {
     btn.onclick = function() { this.closest('.modal').classList.add('hidden'); }
 });
+
+// ==========================================
+// ЛОГІКА КНОПКІ АПАВЯШЧЭННЯЎ
+// ==========================================
+const notifyBtn = document.getElementById('notifyBtn');
+
+// Праверка пры запуску: ці ўключаны ўжо апавяшчэнні?
+function checkNotificationStatus() {
+    if (!('Notification' in window)) {
+        notifyBtn.style.display = 'none'; // Хаваем кнопку, калі браўзер стары
+        return;
+    }
+    if (Notification.permission === 'granted') {
+        notifyBtn.textContent = '🔔';
+        notifyBtn.classList.add('active');
+        notifyBtn.title = "Апавяшчэнні ўключаны";
+        // Спрабуем падключыць Firebase ціха
+        initFirebase(); 
+    }
+}
+
+// Націск на кнопку
+if (notifyBtn) {
+    notifyBtn.addEventListener('click', () => {
+        if (Notification.permission === 'granted') {
+            alert(state.lang === 'be' ? "Апавяшчэнні ўжо працуюць!" : "Уведомления уже включены!");
+            return;
+        }
+
+        // Запытваем дазвол
+        Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+                notifyBtn.textContent = '🔔';
+                notifyBtn.classList.add('active');
+                initFirebase(); // Спрабуем ініцыялізаваць Push
+            } else {
+                alert(state.lang === 'be' ? "Вы забаранілі апавяшчэнні :(" : "Вы запретили уведомления :(");
+            }
+        });
+    });
+}
