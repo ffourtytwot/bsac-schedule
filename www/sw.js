@@ -1,3 +1,4 @@
+// sw.js
 const CACHE_NAME = 'bsac-schedule-v1';
 const ASSETS_TO_CACHE = [
   './',

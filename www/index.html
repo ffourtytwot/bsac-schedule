@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -22,24 +23,35 @@
             </div>
             
             <div class="group-selector">
-                <!-- ВЫБАР ПАДГРУПЫ (НОВАЕ) -->
+                <!-- ВЫБАР КУРСА (НОВАЕ) -->
+                <label for="courseSelect" data-i18n="lblCourse">Курс:</label>
+                <select id="courseSelect">
+                    <option value="1">1 Курс</option>
+                    <option value="2">2 Курс</option>
+                    <option value="3">3 Курс</option>
+                    <option value="4">4 Курс</option>
+                    <!-- Можна дадаць Магістратуру ці Завочку -->
+                </select>
+
+                <!-- ВЫБАР ГРУПЫ (Дынамічны) -->
+                <label for="groupSelect" id="uiLabel" data-i18n="selectLabel">Группа:</label>
+                <select id="groupSelect">
+                    <option value="" disabled selected id="uiSelectDefault" data-i18n="selectDefault">-- Группа --</option>
+                    <!-- Опцыі будуць запаўняцца праз JS -->
+                </select>
+
+                <!-- ВЫБАР ПАДГРУПЫ -->
                 <label for="subgroupSelect" data-i18n="lblSubgroup">Подгруппа:</label>
                 <select id="subgroupSelect">
                     <option value="0" data-i18n="subgroupAll">Все</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                 </select>
+            </div>
 
-                <!-- ВЫБАР ГРУПЫ (Старое) -->
-                <label for="groupSelect" id="uiLabel" data-i18n="selectLabel">Группа:</label>
-                <select id="groupSelect">
-                    <option value="" disabled selected id="uiSelectDefault" data-i18n="selectDefault">-- Группа --</option>
-                    <option value="ИП591">ИП591</option>
-                    <option value="СИ591">СИ591</option>
-                    <option value="АП591">АП591</option>
-                    <option value="МЦ591">МЦ591</option>
-                    <option value="ЦС591">ЦС591</option>
-                </select>
+            <!-- У Header дадаем інфармацыю пра тыдзень -->
+            <div class="week-info" style="width: 100%; text-align: center; font-size: 0.9rem; color: var(--accent-warn); margin-top: 5px;">
+                📅 <span id="currentWeekDisplay">Тыдзень: ...</span>
             </div>
         </div>
     </header>
