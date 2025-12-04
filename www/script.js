@@ -1,18 +1,30 @@
 // script.js
 
 // ==========================================
-// 1. КАНФІГУРАЦЫЯ І КАНСТАНТЫ
+// 1. КАНФІГУРАЦЫЯ
 // ==========================================
+
+// FIREBASE CONSOLE -> PROJECT SETTINGS
+const firebaseConfig = {
+    apiKey: "AIzaSyD-JSK9q44X3He8-kmoszTX6VwlGpg5_N8",
+    authDomain: "bsac-schedule-ft.firebaseapp.com",
+    projectId: "bsac-schedule-ft",
+    storageBucket: "bsac-schedule-ft.appspot.com",
+    messagingSenderId: "937992829672",
+    appId: "1:937992829672:android:087feba164f0e5bb22675d"
+};
+
 const REPO_OWNER = "ffourtytwot";
 const REPO_NAME = "bsac-schedule";
 const FILE_PATH = "www/schedule.json";
+// Соль і хэш для адмінкі (можаш змяніць на свае)
 const SALT = "bsac_super_salt_2025"; 
 const TARGET_HASH = "38bff4d29d08888d2f3c8e0250551c3d7662bcc2cd1490048dc22a89502afc41"; 
 
 const API_URL_INFO = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
 const RAW_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${FILE_PATH}`;
 
-// Спіс груп па курсах
+// Спіс груп
 const GROUPS_BY_COURSE = {
     "1": ["ИП591", "СИ591", "АП591", "МЦ591", "ЦС591", "ИТ541", "СИ541", "ТЦ541", "ПС541", "ИТ542"],
     "2": ["АП491", "СИ491", "ИП491", "МЦ491", "СИ441", "ТЦ441", "ОП441", "ПС441"],
@@ -36,14 +48,13 @@ const translations = {
         lblCourse: "Курс:",
         selectLabel: "Группа:",
         selectDefault: "-- Выберите --",
-        placeholder: "Выберите курс и группу для просмотра.",
+        placeholder: "Выберите курс и группу.",
         loading: "Загрузка...",
         errorLoad: "Ошибка загрузки",
         modalTitle: "Вход модератора",
-        modalDesc: "Введите GitHub Token",
-        modalHint: "Токен сохранится локально.",
+        modalDesc: "Token GitHub",
         btnLogin: "Войти",
-        logoutTitle: "Режим модератора",
+        logoutTitle: "Админка",
         logoutDesc: "Выйти?",
         btnLogout: "Выйти",
         themeLight: "☀️ Светлая",
@@ -55,7 +66,6 @@ const translations = {
         confirmDelete: "Удалить?",
         btnSaveGlobal: "☁️ Сохранить на GitHub",
         saving: "⏳ Сохранение...",
-        emptySlot: "Нет занятий",
         btnAdd: "➕ Добавить",
         btnEdit: "✎",
         btnDelete: "✖",
@@ -65,17 +75,11 @@ const translations = {
         lblSubj: "Предмет",
         lblTeach: "Препод.",
         lblRoom: "Ауд.",
-        lblSubgroup: "П/г:",
         subgroupAll: "Все",
-        days: { 
-            "Понедельник": "Понедельник", "Вторник": "Вторник", "Среда": "Среда", 
-            "Четверг": "Четверг", "Пятница": "Пятница", "Суббота": "Суббота" 
-        },
+        days: { "Понедельник": "Понедельник", "Вторник": "Вторник", "Среда": "Среда", "Четверг": "Четверг", "Пятница": "Пятница", "Суббота": "Суббота" },
         offlineMode: "⚠️ ОФФЛАЙН",
         lblSgShort: "П/г ",
-        weekInfo: "Текущая неделя: ",
-        notificationTitle: "Расписание обновлено!", 
-        notificationBody: "Нажмите для просмотра."
+        weekInfo: "Неделя: "
     },
     be: {
         title: "Расклад БДАС",
@@ -86,10 +90,9 @@ const translations = {
         loading: "Загрузка...",
         errorLoad: "Памылка загрузкі",
         modalTitle: "Уваход мадэратара",
-        modalDesc: "Увядзіце GitHub Token",
-        modalHint: "Токен захаваецца лакальна.",
+        modalDesc: "Token GitHub",
         btnLogin: "Увайсці",
-        logoutTitle: "Рэжым мадэратара",
+        logoutTitle: "Адмінка",
         logoutDesc: "Выйсці?",
         btnLogout: "Выйсці",
         themeLight: "☀️ Светлая",
@@ -101,7 +104,6 @@ const translations = {
         confirmDelete: "Выдаліць?",
         btnSaveGlobal: "☁️ Захаваць на GitHub",
         saving: "⏳ Захаванне...",
-        emptySlot: "Няма заняткаў",
         btnAdd: "➕ Дадаць",
         btnEdit: "✎",
         btnDelete: "✖",
@@ -111,17 +113,11 @@ const translations = {
         lblSubj: "Прадмет",
         lblTeach: "Выкладчык",
         lblRoom: "Аўд.",
-        lblSubgroup: "П/г:",
         subgroupAll: "Усе",
-        days: { 
-            "Понедельник": "Панядзелак", "Вторник": "Аўторак", "Среда": "Серада", 
-            "Четверг": "Чацвер", "Пятница": "Пятніца", "Суббота": "Субота" 
-        },
+        days: { "Понедельник": "Панядзелак", "Вторник": "Аўторак", "Среда": "Серада", "Четверг": "Чацвер", "Пятница": "Пятніца", "Суббота": "Субота" },
         offlineMode: "⚠️ АФЛАЙН",
         lblSgShort: "П/г ",
-        weekInfo: "Бягучы тыдзень: ",
-        notificationTitle: "Расклад абноўлены!", 
-        notificationBody: "Націсніце для прагляду."
+        weekInfo: "Тыдзень: "
     }
 };
 
@@ -153,14 +149,71 @@ async function initApp() {
     applyTheme();
     applyLang();
 
+    // Запуск Firebase
+    initFirebase();
+
     await loadScheduleData();
-    setTimeout(checkForUpdatesBackground, 3000);
+    
+    // Фонавая праверка абнаўленняў JSON
+    setTimeout(checkForUpdatesBackground, 5000);
 }
 
 window.addEventListener('DOMContentLoaded', initApp);
 
 // ==========================================
-// 5. ЛОГІКА ТЫДНЯЎ
+// 5. FIREBASE INTEGRATION
+// ==========================================
+function initFirebase() {
+    // Праверка, ці падключаны скрыпты ў HTML
+    if (typeof firebase === 'undefined') {
+        console.warn("Firebase SDK not loaded via HTML.");
+        return;
+    }
+
+    try {
+        // Правяраем, ці ўжо ініцыялізаваны (каб не было памылак пры hot-reload)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        const messaging = firebase.messaging();
+
+        // Запытваем права на паведамленні
+        Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+                console.log('Notification permission granted.');
+                
+                // Атрымліваем токен (для тэстаў)
+                messaging.getToken().then((currentToken) => {
+                    if (currentToken) {
+                        console.log('FCM Token:', currentToken);
+                        if(state.isAdmin) alert("Admin Token (Check Console)");
+                    }
+                }).catch((err) => {
+                    console.log('An error occurred while retrieving token. ', err);
+                });
+            }
+        });
+
+        // Апрацоўка паведамленняў, калі сайт адкрыты
+        messaging.onMessage((payload) => {
+            console.log('Message received. ', payload);
+            const title = payload.notification.title;
+            const options = {
+                body: payload.notification.body,
+                icon: 'logo.png'
+            };
+            // Проста паказваем alert або сістэмнае апавяшчэнне
+            new Notification(title, options);
+        });
+
+    } catch (e) {
+        console.error("Firebase init error:", e);
+    }
+}
+
+// ==========================================
+// 6. ЛОГІКА ТЫДНЯЎ І КОЛЕРАЎ
 // ==========================================
 function calculateCurrentWeek() {
     const now = new Date();
@@ -181,36 +234,27 @@ function calculateCurrentWeek() {
 }
 
 function updateWeekDisplay() {
-    const el = document.getElementById('currentWeekDisplay');
-    if (el) {
-        // Калі элемента ў HTML няма, дадаем яго ў header
-        // (Але лепей, каб ён быў у HTML, як мы дамаўляліся раней)
-    } else {
-        // Калі ў вас няма элемента ў HTML, можна дадаць яго праз JS
+    // Калі няма элемента ў HTML, ствараем яго
+    let displayEl = document.getElementById('currentWeekDisplay');
+    if (!displayEl) {
         const header = document.querySelector('header');
         if(header) {
             const div = document.createElement('div');
             div.id = 'currentWeekDisplay';
-            div.style.width = '100%';
-            div.style.textAlign = 'center';
-            div.style.fontSize = '0.9rem';
-            div.style.color = 'var(--accent-warn)';
-            div.style.marginTop = '5px';
+            div.className = 'week-info'; // стыль ёсць у index.html
             header.appendChild(div);
+            displayEl = div;
         }
     }
     
-    const displayEl = document.getElementById('currentWeekDisplay');
     if(displayEl) {
         const text = translations[state.lang].weekInfo;
         displayEl.innerHTML = `${text} <b>${currentAcademicWeek}</b>`;
     }
 }
 
-// ВАЖНАЯ ФУНКЦЫЯ: Праверка супадзення тыдня
 function checkWeekMatch(weeksStr) {
     if (!weeksStr) return true; 
-    // weeksStr прыходзіць як радок "1,3" або лік 2
     const weeks = String(weeksStr).split(',').map(s => s.trim());
     return weeks.includes(String(currentAcademicWeek));
 }
@@ -218,15 +262,15 @@ function checkWeekMatch(weeksStr) {
 function getLessonType(subject) {
     if (!subject) return "";
     const s = subject.toLowerCase();
-    if (s.includes("(лк)") || s.includes("лекция")) return "type-lk";
-    if (s.includes("(пз)") || s.includes("практи")) return "type-pz";
-    if (s.includes("(лр)") || s.includes("лабора")) return "type-lr";
-    if (s.includes("экзамен") || s.includes("зачет") || s.includes("кансульт")) return "type-ex";
+    if (s.includes("(лк)") || s.includes("лекция")) return "type-lk"; // Жоўты
+    if (s.includes("(пз)") || s.includes("практи")) return "type-pz"; // Зялёны
+    if (s.includes("(лр)") || s.includes("лабора")) return "type-lr"; // Сіні
+    if (s.includes("экзамен") || s.includes("зачет")) return "type-ex"; // Чырвоны
     return "";
 }
 
 // ==========================================
-// 6. UI & SETTINGS
+// 7. UI & SETTINGS
 // ==========================================
 function loadSettings() {
     const cached = localStorage.getItem('bsac_settings');
@@ -240,7 +284,6 @@ function loadSettings() {
             state.subgroup = p.subgroup || '0';
         } catch (e) {}
     }
-    
     const cSel = document.getElementById('courseSelect');
     const sSel = document.getElementById('subgroupSelect');
     if(cSel) cSel.value = state.course;
@@ -323,7 +366,7 @@ function applyLang() {
 }
 
 // ==========================================
-// 7. DATA LOADING
+// 8. DATA LOADING
 // ==========================================
 async function loadScheduleData() {
     const badge = document.getElementById('offlineBadge');
@@ -359,7 +402,7 @@ async function checkForUpdatesBackground() {
 
         if (localSha && remoteSha !== localSha) {
             localStorage.setItem('bsac_schedule_sha', remoteSha);
-            // Тут можна выклікаць апавяшчэнне
+            // Аўтаматычнае абнаўленне
             await loadScheduleData();
         } else if (!localSha) {
             localStorage.setItem('bsac_schedule_sha', remoteSha);
@@ -368,7 +411,7 @@ async function checkForUpdatesBackground() {
 }
 
 // ==========================================
-// 8. РЭНДЭРЫНГ (UPDATED)
+// 9. РЭНДЭРЫНГ РАСКЛАДУ
 // ==========================================
 function renderSchedule(group) {
     const container = document.getElementById('scheduleContainer');
@@ -421,13 +464,14 @@ function renderSchedule(group) {
 
             const infoCol = document.createElement('td');
             
+            // Фільтрацыя пар на гэты час
             const slotLessons = dayLessons.map((l, index) => ({...l, realIndex: index}))
                                           .filter(l => l.time === timeSlot);
 
             const userSg = parseInt(state.subgroup) || 0;
             let hasContent = false;
 
-            // Групоўка для рэндэрынгу
+            // Размяркоўваем пары па падгрупах [0, 1, 2]
             const subgroupsMap = { 0: [], 1: [], 2: [] };
             slotLessons.forEach(l => {
                 const sg = parseInt(l.num_subgroup) || 0;
@@ -449,21 +493,24 @@ function renderSchedule(group) {
                     const typeClass = getLessonType(lesson.subject);
                     if (typeClass) div.classList.add(typeClass);
 
+                    // Калі тып не вызначаны, фарбуем па падгрупе
                     if (!typeClass) {
                         if (lesson.num_subgroup === 1) div.style.borderLeft = "5px solid #e67e22";
                         else if (lesson.num_subgroup === 2) div.style.borderLeft = "5px solid #9b59b6";
                         else div.style.borderLeft = "5px solid transparent";
                     }
 
-                    const isCurrentWeek = checkWeekMatch(lesson.weeks); // ВЫКАРЫСТАННЕ checkWeekMatch
+                    const isCurrentWeek = checkWeekMatch(lesson.weeks);
                     if (!isCurrentWeek) {
                         div.style.opacity = "0.5";
                         div.style.filter = "grayscale(0.8)";
                     } else {
+                        // Калі тып ёсць, колер даецца CSS класам. Калі не - даем дэфолтны.
                         if (!typeClass) div.style.backgroundColor = (state.theme === 'dark') ? 'rgba(39, 174, 96, 0.15)' : 'rgba(39, 174, 96, 0.08)';
                     }
                     div.style.paddingLeft = "8px";
 
+                    // Генерацыя кантэнту
                     if (lesson.multi) {
                          lesson.content.forEach((sub, subIdx) => {
                              const subDiv = document.createElement('div');
@@ -479,6 +526,7 @@ function renderSchedule(group) {
                     infoCol.appendChild(div);
                     hasContent = true;
 
+                    // Адзначаем занятыя тыдні
                     if (!lesson.weeks) {
                         [1,2,3,4].forEach(w => usedWeeks.add(w));
                     } else {
@@ -486,40 +534,42 @@ function renderSchedule(group) {
                     }
                 });
 
-                // Кнопка для Адміна (запаўненне дзірак)
-                if (state.isAdmin) {
+                // "РАЗУМНАЯ" КНОПКА ДАДАННЯ (ADMIN)
+                // Калі ёсць пары, але засталіся свабодныя тыдні (напрыклад, ёсць 1,3, а няма 2,4)
+                if (state.isAdmin && lessons.length > 0) {
                     if (usedWeeks.size < 4) {
                         const missingWeeks = [1, 2, 3, 4].filter(x => !usedWeeks.has(x));
                         const weeksStr = missingWeeks.join(',');
-                        // Калі ўжо ёсць пары ў гэтай падгрупе, даем магчымасць дадаць у астатнія тыдні
-                        // Калі пар наогул няма (lessons.length == 0), кнопка дадасца ніжэй па-за гэтай функцыяй
-                        if (lessons.length > 0) {
-                            renderSpecificAddButton(infoCol, group, dayKey, timeSlot, sgId, weeksStr);
-                            hasContent = true;
-                        }
+                        renderSpecificAddButton(infoCol, group, dayKey, timeSlot, sgId, weeksStr);
+                        hasContent = true;
                     }
                 }
             };
 
-            // Рэндэрынг
+            // Логіка паказу
             renderSubgroupColumn(0); // Агульныя
+            
+            // Калі няма агульных, правяраем падгрупы
             if (subgroupsMap[0].length === 0) {
                 if (showSg1) renderSubgroupColumn(1);
                 if (showSg2) renderSubgroupColumn(2);
             }
 
-            // Калі зусім пуста (і для адміна)
-            if (state.isAdmin && !hasContent) {
-                // Калі нічога няма, прапануем дадаць агульную пару
-                renderSpecificAddButton(infoCol, group, dayKey, timeSlot, 0, "");
-                hasContent = true;
-            } else if (state.isAdmin && subgroupsMap[0].length === 0) {
-                // Калі ёсць 1 пг, але няма 2 пг (і наадварот)
-                if (subgroupsMap[1].length > 0 && subgroupsMap[2].length === 0 && showSg2) {
-                    renderSpecificAddButton(infoCol, group, dayKey, timeSlot, 2, "");
-                }
-                if (subgroupsMap[2].length > 0 && subgroupsMap[1].length === 0 && showSg1) {
-                    renderSpecificAddButton(infoCol, group, dayKey, timeSlot, 1, "");
+            // Калі зусім пуста (паказваем кнопку для Адміна)
+            if (state.isAdmin) {
+                // Выпадак 1: Зусім пуста
+                if (!hasContent) {
+                    renderSpecificAddButton(infoCol, group, dayKey, timeSlot, 0, "");
+                    hasContent = true;
+                } 
+                // Выпадак 2: Ёсць 1-я, няма 2-й (і наадварот) - даем магчымасць дадаць другую
+                else if (subgroupsMap[0].length === 0) {
+                    if (subgroupsMap[1].length > 0 && subgroupsMap[2].length === 0 && showSg2) {
+                        renderSpecificAddButton(infoCol, group, dayKey, timeSlot, 2, "");
+                    }
+                    if (subgroupsMap[2].length > 0 && subgroupsMap[1].length === 0 && showSg1) {
+                        renderSpecificAddButton(infoCol, group, dayKey, timeSlot, 1, "");
+                    }
                 }
             }
 
@@ -534,6 +584,7 @@ function renderSchedule(group) {
             const emptyRow = document.createElement('tr');
             const emptyCell = document.createElement('td');
             emptyCell.colSpan = 2;
+            emptyCell.className = 'empty-day-cell'; // Стыль у CSS
             emptyCell.style.textAlign = "center";
             emptyCell.style.padding = "20px";
             emptyCell.style.color = "var(--text-secondary)";
@@ -551,7 +602,7 @@ function generateLessonHTML(item) {
     let weekText = '';
     if (item.weeks) {
         const w = item.weeks;
-        const isActive = checkWeekMatch(w); // Выкарыстанне checkWeekMatch
+        const isActive = checkWeekMatch(w);
         const style = isActive ? 'background-color:var(--accent-warn);color:#000;' : 'background-color:var(--border-color);color:var(--text-secondary);';
         weekText = `<span class="week-badge" style="${style}">${t('lblWeeks')} ${w}</span>`;
     }
@@ -571,7 +622,7 @@ function generateLessonHTML(item) {
 }
 
 // ==========================================
-// 9. ADMIN ACTIONS
+// 10. АДМІНСКІЯ ФУНКЦЫІ
 // ==========================================
 function renderSpecificAddButton(container, group, dayKey, timeSlot, subgroup, defaultWeeks) {
     const div = document.createElement('div');
@@ -581,17 +632,17 @@ function renderSpecificAddButton(container, group, dayKey, timeSlot, subgroup, d
     div.style.border = "1px dashed var(--border-color)";
     div.style.fontSize = "0.8rem";
     
-    let sgLabel = subgroup === 0 ? "" : (subgroup === 1 ? "(1)" : "(2)");
+    let sgLabel = subgroup === 0 ? "" : (subgroup === 1 ? "(1 п/г)" : "(2 п/г)");
     let weekLabel = defaultWeeks ? `[${defaultWeeks}]` : "";
 
     const btn = document.createElement('button');
     btn.className = 'btn-add';
-    btn.innerHTML = `${t('btnAdd')} ${sgLabel} ${weekLabel}`;
+    btn.innerHTML = `${t('btnAdd')} <span style="opacity:0.8;font-size:0.8em">${sgLabel} ${weekLabel}</span>`;
     
     btn.onclick = () => {
         const newLesson = {
             time: timeSlot,
-            subject: "...",
+            subject: "Новый предмет",
             teacher: "",
             room: "",
             weeks: defaultWeeks,
@@ -641,8 +692,6 @@ function deleteLesson(group, dayKey, index, subIndex) {
 }
 
 function editLesson(group, dayKey, index, subIndex) {
-    // Знайсці кантэйнер (бацькоўскі элемент кнопкі)
-    // УВАГА: выкарыстоўваем глабальны event, таму што ён перададзены ў createAdminControls
     const btn = window.event.target; 
     const container = btn.closest('.week-split');
     
@@ -747,7 +796,7 @@ async function saveToGithub() {
 }
 
 // ==========================================
-// 10. AUTH
+// 11. АЎТАРЫЗАЦЫЯ
 // ==========================================
 async function sha256(str) {
     const buf = new TextEncoder().encode(str);
